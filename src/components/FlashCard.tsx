@@ -6,13 +6,50 @@ interface FlashCardProps {
   onFlip: () => void
 }
 
-const DIFFICULTY_LABEL: Record<Flashcard['difficulty'], string> = {
-  easy: '🟢 легко',
-  medium: '🟡 средне',
-  hard: '🔴 сложно',
+const DIFFICULTY: Record<Flashcard['difficulty'], { label: string; className: string }> = {
+  easy: { label: 'легко', className: 'bg-success-soft text-success' },
+  medium: { label: 'средне', className: 'bg-warn-soft text-warn' },
+  hard: { label: 'сложно', className: 'bg-danger-soft text-danger' },
 }
 
-// Флип-карточка: клик переворачивает между вопросом/командой и ответом/результатом.
+// Одна сторона карточки: шапка с типом/сложностью + содержимое по центру.
+function Face({
+  card,
+  side,
+  children,
+}: {
+  card: Flashcard
+  side: 'front' | 'back'
+  children: React.ReactNode
+}) {
+  const difficulty = DIFFICULTY[card.difficulty]
+  return (
+    <div
+      className={`flip-face ${side === 'back' ? 'flip-face-back' : ''} card flex min-h-72 flex-col p-6`}
+    >
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-semibold uppercase tracking-[0.12em] text-ink-faint">
+          {card.type === 'command' ? 'Команда' : 'Вопрос'}
+          {side === 'back' ? (card.type === 'command' ? ' · результат' : ' · ответ') : ''}
+        </span>
+        <span className={`rounded-full px-2.5 py-0.5 font-semibold ${difficulty.className}`}>
+          {difficulty.label}
+        </span>
+      </div>
+
+      <div className="flex flex-1 items-center justify-center py-6 text-center">
+        {children}
+      </div>
+
+      <p className="text-center text-xs text-ink-faint">
+        {side === 'front' ? 'Нажми, чтобы перевернуть' : 'Оцени, насколько легко вспомнил'}
+      </p>
+    </div>
+  )
+}
+
+// Флип-карточка с 3D-переворотом: клик переворачивает между
+// вопросом/командой и ответом/результатом.
 function FlashCard({ card, flipped, onFlip }: FlashCardProps) {
   const front = card.type === 'command' ? card.command : card.question
   const back = card.type === 'command' ? card.result : card.answer
@@ -21,34 +58,26 @@ function FlashCard({ card, flipped, onFlip }: FlashCardProps) {
     <button
       type="button"
       onClick={onFlip}
-      className="card card-hover flex min-h-64 w-full flex-col items-center justify-center text-center"
+      aria-pressed={flipped}
+      className="flip-scene block w-full cursor-pointer text-left"
     >
-      <div className="mb-3 flex items-center gap-2 text-xs text-muted">
-        <span>{card.type === 'command' ? '⌨️ команда' : '❓ вопрос'}</span>
-        <span>·</span>
-        <span>{DIFFICULTY_LABEL[card.difficulty]}</span>
-      </div>
-
-      {flipped ? (
-        <div>
-          <p className="mb-1 text-xs uppercase tracking-wide text-primary">
-            {card.type === 'command' ? 'Результат' : 'Ответ'}
-          </p>
-          <p className="text-base leading-relaxed text-slate-800">{back}</p>
-        </div>
-      ) : (
-        <div>
+      <div className={`flip-inner ${flipped ? 'flipped' : ''}`}>
+        <Face card={card} side="front">
           {card.type === 'command' ? (
-            <code className="rounded-lg bg-slate-900 px-3 py-2 font-mono text-sm text-slate-100">
+            <code className="rounded-btn bg-terminal px-4 py-3 font-mono text-sm leading-relaxed text-terminal-ink">
               {front}
             </code>
           ) : (
-            <p className="text-lg font-semibold text-slate-900">{front}</p>
+            <p className="font-display text-xl font-semibold leading-snug text-ink">
+              {front}
+            </p>
           )}
-        </div>
-      )}
+        </Face>
 
-      <p className="mt-6 text-xs text-muted">👆 нажми, чтобы перевернуть</p>
+        <Face card={card} side="back">
+          <p className="max-w-prose text-[15px] leading-relaxed text-ink-soft">{back}</p>
+        </Face>
+      </div>
     </button>
   )
 }

@@ -2,13 +2,12 @@ interface ErrorStateProps {
   message?: string
 }
 
-// Состояние ошибки загрузки.
-function ErrorState({ message = 'Что-то пошло не так при загрузке данных.' }: ErrorStateProps) {
+// Состояние ошибки загрузки данных.
+function ErrorState({ message = 'Что-то пошло не так.' }: ErrorStateProps) {
   return (
-    <div className="mx-auto max-w-md py-16 text-center">
-      <div className="mb-3 text-4xl">⚠️</div>
-      <p className="font-semibold text-slate-900">Ошибка</p>
-      <p className="mt-1 text-sm text-muted">{message}</p>
+    <div className="rounded-card border border-danger/25 bg-danger-soft px-5 py-6 text-center">
+      <p className="font-semibold text-danger">Не удалось загрузить данные</p>
+      <p className="mt-1 text-sm text-ink-soft">{message}</p>
     </div>
   )
 }

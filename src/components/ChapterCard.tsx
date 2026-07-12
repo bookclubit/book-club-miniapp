@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import { plural } from '../lib/format'
+import Icon from './Icon'
 import type { ChapterWithSlug } from '../types'
 
 interface ChapterCardProps {
@@ -6,20 +8,36 @@ interface ChapterCardProps {
   chapter: ChapterWithSlug
 }
 
-// Карточка главы для страницы книги.
+// Строка главы в списке на странице книги: номер, название, описание.
 function ChapterCard({ bookId, chapter }: ChapterCardProps) {
   return (
-    <Link to={`/book/${bookId}/chapter/${chapter.slug}`} className="card card-hover">
-      <div className="mb-2 flex items-center gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
-          {chapter.order}
-        </span>
-        <h3 className="text-base font-bold text-slate-900">{chapter.title}</h3>
+    <Link
+      to={`/book/${bookId}/chapter/${chapter.slug}`}
+      className="card card-hover group flex items-start gap-4"
+    >
+      <span
+        aria-hidden="true"
+        className="font-display pt-0.5 text-3xl font-semibold leading-none text-line-strong transition-colors duration-200 group-hover:text-accent"
+      >
+        {String(chapter.order).padStart(2, '0')}
+      </span>
+
+      <div className="min-w-0 flex-1">
+        <h3 className="font-display text-lg font-semibold text-ink">{chapter.title}</h3>
+        <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-ink-soft">
+          {chapter.description}
+        </p>
+        <p className="mt-2 text-xs font-medium text-ink-faint">
+          {chapter.topics.length}{' '}
+          {plural(chapter.topics.length, 'тема', 'темы', 'тем')}
+        </p>
       </div>
-      <p className="line-clamp-3 text-sm text-slate-600">{chapter.description}</p>
-      <p className="mt-3 text-xs text-muted">
-        📎 {chapter.subchapters.length} подглав · 🎯 {chapter.learning_outcome.slice(0, 60)}…
-      </p>
+
+      <Icon
+        name="arrow-right"
+        size={16}
+        className="mt-1 shrink-0 text-ink-faint transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-accent"
+      />
     </Link>
   )
 }

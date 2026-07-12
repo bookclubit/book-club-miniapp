@@ -4,8 +4,10 @@ import useSWR from 'swr'
 import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import FlashCard from '../components/FlashCard'
+import Icon from '../components/Icon'
 import Loading from '../components/Loading'
-import { fetchFlashcards, flashcardsUrl } from '../lib/api'
+import { fetchFlashcards } from '../lib/api'
+import { plural } from '../lib/format'
 import {
   defaultCardProgress,
   isDue,
@@ -16,11 +18,28 @@ import {
 } from '../lib/storage'
 import type { Flashcard, ReviewGrade, StudyProgress } from '../types'
 
+// Кнопки оценки: семантические цвета, текст ≥ 4.5:1 на мягком фоне.
 const GRADES: { grade: ReviewGrade; label: string; className: string }[] = [
-  { grade: 'again', label: '🔁 Повторить', className: 'bg-red-500 hover:bg-red-600' },
-  { grade: 'hard', label: '😥 Трудно', className: 'bg-amber-500 hover:bg-amber-600' },
-  { grade: 'good', label: '🙂 Хорошо', className: 'bg-primary hover:bg-primary-hover' },
-  { grade: 'easy', label: '😎 Легко', className: 'bg-emerald-500 hover:bg-emerald-600' },
+  {
+    grade: 'again',
+    label: 'Снова',
+    className: 'border-danger/30 bg-danger-soft text-danger hover:border-danger/60',
+  },
+  {
+    grade: 'hard',
+    label: 'Трудно',
+    className: 'border-warn/30 bg-warn-soft text-warn hover:border-warn/60',
+  },
+  {
+    grade: 'good',
+    label: 'Хорошо',
+    className: 'border-accent/30 bg-accent-soft text-accent-strong hover:border-accent/60',
+  },
+  {
+    grade: 'easy',
+    label: 'Легко',
+    className: 'border-success/30 bg-success-soft text-success hover:border-success/60',
+  },
 ]
 
 // Страница изучения: флип-карточки с интервальным повторением (SM-2).
@@ -28,7 +47,7 @@ function Study() {
   const { bookId } = useParams<{ bookId: string }>()
 
   const { data, error, isLoading } = useSWR<Flashcard[]>(
-    bookId ? flashcardsUrl(bookId) : null,
+    bookId ? `flashcards:${bookId}` : null,
     () => fetchFlashcards(bookId as string),
   )
 
@@ -48,13 +67,27 @@ function Study() {
   }, [bookId, data, ready])
 
   if (!bookId) return <ErrorState message="Не указана книга." />
-  if (isLoading || !ready) return <Loading label="Загружаем карточки…" />
-  if (error) return <ErrorState message={(error as Error).message} />
+  if (isLoading || (!ready && !error && data && data.length > 0)) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+        <Loading label="Загружаем карточки…" />
+      </div>
+    )
+  }
+  if (error) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+        <ErrorState message={(error as Error).message} />
+      </div>
+    )
+  }
   if (!data || data.length === 0) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-8">
-        <BackLink bookId={bookId} />
-        <EmptyState icon="🎴" title="Карточек пока нет" />
+      <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+        <BackLink />
+        <div className="mt-6">
+          <EmptyState title="Карточек пока нет" hint="Они появятся после разбора глав." />
+        </div>
       </div>
     )
   }
@@ -72,7 +105,7 @@ function Study() {
     setProgress(updated)
     saveProgress(bookId, updated)
 
-    // «Повторить» — вернуть карточку в конец очереди этой сессии.
+    // «Снова» — вернуть карточку в конец очереди этой сессии.
     const rest = queue.slice(1)
     setQueue(grade === 'again' ? [...rest, currentId] : rest)
     setReviewed((n) => n + 1)
@@ -91,16 +124,21 @@ function Study() {
   // Все карточки «на сегодня» пройдены.
   if (!currentCard) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-8">
-        <BackLink bookId={bookId} />
-        <div className="mt-6 text-center">
-          <div className="mb-3 text-5xl">🎉</div>
-          <p className="text-xl font-bold text-slate-900">На сегодня всё!</p>
-          <p className="mt-1 text-muted">
-            Повторено карточек: {reviewed}. Возвращайся позже — интервалы уже назначены.
+      <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+        <BackLink />
+        <div className="reveal mt-14 text-center">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success-soft text-success">
+            <Icon name="check" size={26} />
+          </span>
+          <p className="font-display mt-5 text-2xl font-semibold text-ink">На сегодня всё</p>
+          <p className="mx-auto mt-2 max-w-sm text-ink-soft">
+            {reviewed > 0
+              ? `Повторено ${reviewed} ${plural(reviewed, 'карточка', 'карточки', 'карточек')}. Интервалы назначены — возвращайся позже.`
+              : 'Все карточки ждут своего срока. Возвращайся позже.'}
           </p>
-          <button type="button" onClick={handleReset} className="btn-ghost mt-5">
-            🔄 Сбросить прогресс
+          <button type="button" onClick={handleReset} className="btn-ghost mt-6">
+            <Icon name="refresh" size={15} />
+            Сбросить прогресс
           </button>
         </div>
       </div>
@@ -108,47 +146,50 @@ function Study() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
-      <BackLink bookId={bookId} />
+    <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+      <BackLink />
 
-      <div className="mt-4">
-        <div className="mb-2 flex items-center justify-between text-sm text-muted">
+      <div className="reveal mt-6">
+        <div className="mb-2 flex items-center justify-between text-sm text-ink-faint">
           <span>Осталось: {queue.length}</span>
           <span>Повторено: {reviewed}</span>
         </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-line">
+        <div
+          role="progressbar"
+          aria-valuenow={percent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-label="Прогресс сессии"
+          className="h-1.5 w-full overflow-hidden rounded-full bg-line"
+        >
           <div
-            className="h-full rounded-full bg-primary transition-all"
+            className="progress-fill h-full rounded-full bg-accent"
             style={{ width: `${percent}%` }}
           />
         </div>
       </div>
 
-      <div className="mt-6">
+      <div className="reveal mt-8" style={{ '--reveal-delay': '80ms' } as React.CSSProperties}>
         <FlashCard card={currentCard} flipped={flipped} onFlip={() => setFlipped((f) => !f)} />
       </div>
 
-      <div className="mt-5">
+      <div className="mt-6">
         {flipped ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
             {GRADES.map(({ grade, label, className }) => (
               <button
                 key={grade}
                 type="button"
                 onClick={() => handleGrade(grade)}
-                className={`rounded-[12px] px-3 py-2.5 text-sm font-semibold text-white transition-colors ${className}`}
+                className={`rounded-btn border px-3 py-2.5 text-sm font-semibold transition-[border-color,transform] duration-200 active:scale-[0.98] ${className}`}
               >
                 {label}
               </button>
             ))}
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => setFlipped(true)}
-            className="btn-primary w-full"
-          >
-            👀 Показать ответ
+          <button type="button" onClick={() => setFlipped(true)} className="btn-primary w-full">
+            Показать ответ
           </button>
         )}
       </div>
@@ -156,11 +197,12 @@ function Study() {
   )
 }
 
-// Ссылка назад к книге.
-function BackLink({ bookId }: { bookId: string }) {
+// Ссылка назад к выбору книги для повторения.
+function BackLink() {
   return (
-    <Link to={`/book/${bookId}`} className="text-sm text-primary hover:underline">
-      ← К главам книги
+    <Link to="/study" className="link-back">
+      <Icon name="arrow-left" size={15} />
+      Ко всем карточкам
     </Link>
   )
 }

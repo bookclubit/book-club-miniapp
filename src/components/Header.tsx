@@ -1,15 +1,41 @@
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
+import ThemeToggle from './ThemeToggle'
 
-// Шапка приложения со ссылкой на главную.
+const NAV = [
+  { to: '/', label: 'Главная', end: true },
+  { to: '/books', label: 'Книги', end: false },
+  { to: '/study', label: 'Карточки', end: false },
+]
+
+function navClass({ isActive }: { isActive: boolean }): string {
+  return [
+    'border-b-2 pb-0.5 text-sm font-medium transition-colors duration-200',
+    isActive
+      ? 'border-accent text-ink'
+      : 'border-transparent text-ink-faint hover:text-ink',
+  ].join(' ')
+}
+
+// Шапка: словесный знак, вкладки разделов и переключатель темы.
 function Header() {
   return (
-    <header className="sticky top-0 z-10 border-b border-line bg-surface/80 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <Link to="/" className="flex items-center gap-2 text-lg font-bold text-slate-900">
-          <span>📚</span>
-          <span>Книжный клуб</span>
+    <header className="sticky top-0 z-10 border-b border-line bg-surface/85 backdrop-blur-md">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 sm:px-6">
+        <Link to="/" className="font-display text-lg font-semibold tracking-tight text-ink">
+          Книжный клуб
         </Link>
-        <span className="text-sm text-muted">для фронтендеров</span>
+
+        <nav aria-label="Основная навигация" className="order-3 flex w-full gap-5 sm:order-0 sm:w-auto sm:flex-1">
+          {NAV.map(({ to, label, end }) => (
+            <NavLink key={to} to={to} end={end} className={navClass}>
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <span className="ml-auto sm:ml-0">
+          <ThemeToggle />
+        </span>
       </div>
     </header>
   )

@@ -1,97 +1,80 @@
 import { Link, useParams } from 'react-router-dom'
 import useSWR from 'swr'
 import ErrorState from '../components/ErrorState'
+import EmptyState from '../components/EmptyState'
+import Icon from '../components/Icon'
 import Loading from '../components/Loading'
-import { chapterUrl, fetcher } from '../lib/api'
-import type { Chapter as ChapterData, Subchapter } from '../types'
+import TopicSection from '../components/TopicSection'
+import { chapterUrl, fetchTopics, fetcher } from '../lib/api'
+import type { Chapter as ChapterData, Topic } from '../types'
 
-// Блок одной подглавы: краткое содержание, инсайты, мнения спикеров.
-function SubchapterBlock({ subchapter }: { subchapter: Subchapter }) {
-  return (
-    <div className="card">
-      <h3 className="text-lg font-bold text-slate-900">{subchapter.title}</h3>
-      <p className="mt-2 text-slate-600">{subchapter.summary}</p>
-
-      {subchapter.insights.length > 0 ? (
-        <div className="mt-4">
-          <p className="text-sm font-semibold text-slate-900">💡 Инсайты</p>
-          <ul className="mt-2 space-y-2">
-            {subchapter.insights.map((insight) => (
-              <li
-                key={insight}
-                className="rounded-[12px] bg-canvas px-3 py-2 text-sm text-slate-700"
-              >
-                {insight}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {subchapter.speaker_notes.length > 0 ? (
-        <div className="mt-4">
-          <p className="text-sm font-semibold text-slate-900">🎤 Мнения спикеров</p>
-          <div className="mt-2 space-y-3">
-            {subchapter.speaker_notes.map((note) => (
-              <div
-                key={note.speaker + note.opinion}
-                className="flex gap-3 rounded-[12px] border border-line px-3 py-3"
-              >
-                <span className="text-xl">{note.avatar || '🧑‍💻'}</span>
-                <div>
-                  <p className="text-sm font-semibold text-slate-900">{note.speaker}</p>
-                  <p className="mt-0.5 text-sm text-slate-600">{note.opinion}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </div>
-  )
-}
-
-// Страница главы: список подглав с инсайтами и мнениями + переход к карточкам.
+// Страница главы: описание, ожидаемый результат и темы (Markdown-материалы).
 function Chapter() {
   const { bookId, chapterId } = useParams<{ bookId: string; chapterId: string }>()
 
-  const { data, error, isLoading } = useSWR<ChapterData>(
+  const chapter = useSWR<ChapterData>(
     bookId && chapterId ? chapterUrl(bookId, chapterId) : null,
     fetcher,
+  )
+  const topics = useSWR<Topic[]>(
+    chapter.data ? `topics:${bookId}:${chapterId}` : null,
+    () => fetchTopics(bookId as string, chapterId as string, chapter.data as ChapterData),
   )
 
   if (!bookId || !chapterId) return <ErrorState message="Не указана глава." />
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <Link to={`/book/${bookId}`} className="text-sm text-primary hover:underline">
-        ← К главам книги
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+      <Link to={`/book/${bookId}`} className="link-back">
+        <Icon name="arrow-left" size={15} />
+        К книге
       </Link>
 
-      {isLoading ? (
+      {chapter.isLoading ? (
         <Loading label="Загружаем главу…" />
-      ) : error ? (
-        <ErrorState message={(error as Error).message} />
-      ) : data ? (
+      ) : chapter.error ? (
+        <div className="mt-6">
+          <ErrorState message={(chapter.error as Error).message} />
+        </div>
+      ) : chapter.data ? (
         <>
-          <header className="mt-4">
-            <span className="text-sm font-medium text-primary">Глава {data.order}</span>
-            <h1 className="mt-1 text-2xl font-bold text-slate-900">{data.title}</h1>
-            <p className="mt-3 text-slate-600">{data.description}</p>
-            <div className="mt-4 rounded-[12px] bg-canvas px-4 py-3">
-              <p className="text-sm font-semibold text-slate-900">🎯 Чему научишься</p>
-              <p className="mt-1 text-sm text-slate-600">{data.learning_outcome}</p>
+          <header className="reveal mt-8">
+            <p className="eyebrow">Глава {chapter.data.order}</p>
+            <h1 className="font-display mt-2 text-3xl font-semibold leading-tight text-ink sm:text-4xl">
+              {chapter.data.title}
+            </h1>
+            <p className="mt-4 leading-relaxed text-ink-soft">{chapter.data.description}</p>
+
+            <div className="mt-5 rounded-card bg-accent-soft px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-accent-strong">
+                Чему научишься
+              </p>
+              <p className="mt-1.5 text-sm leading-relaxed text-ink">
+                {chapter.data.learning_outcome}
+              </p>
             </div>
-            <Link to={`/study/${bookId}`} className="btn-primary mt-5">
-              🎴 Учить карточки
+
+            <Link to={`/study/${bookId}`} className="btn-primary mt-6">
+              <Icon name="cards" size={16} />
+              Учить карточки
             </Link>
           </header>
 
-          <section className="mt-8 space-y-4">
-            {data.subchapters.map((subchapter) => (
-              <SubchapterBlock key={subchapter.id} subchapter={subchapter} />
-            ))}
-          </section>
+          <div className="mt-12">
+            {topics.isLoading ? (
+              <Loading label="Загружаем темы…" />
+            ) : topics.error ? (
+              <ErrorState message={(topics.error as Error).message} />
+            ) : !topics.data || topics.data.length === 0 ? (
+              <EmptyState title="Темы пока не добавлены" />
+            ) : (
+              <div className="space-y-5">
+                {topics.data.map((topic, i) => (
+                  <TopicSection key={topic.meta.id} topic={topic} index={i} />
+                ))}
+              </div>
+            )}
+          </div>
         </>
       ) : null}
     </div>

@@ -1,16 +1,14 @@
 interface EmptyStateProps {
-  icon?: string
   title: string
   hint?: string
 }
 
-// Пустое состояние (нет данных для отображения).
-function EmptyState({ icon = '🗂️', title, hint }: EmptyStateProps) {
+// Пустое состояние списка.
+function EmptyState({ title, hint }: EmptyStateProps) {
   return (
-    <div className="mx-auto max-w-md py-16 text-center">
-      <div className="mb-3 text-4xl">{icon}</div>
-      <p className="font-semibold text-slate-900">{title}</p>
-      {hint ? <p className="mt-1 text-sm text-muted">{hint}</p> : null}
+    <div className="rounded-card border border-dashed border-line-strong py-10 text-center">
+      <p className="font-medium text-ink">{title}</p>
+      {hint ? <p className="mt-1 text-sm text-ink-faint">{hint}</p> : null}
     </div>
   )
 }

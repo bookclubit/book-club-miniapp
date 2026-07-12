@@ -2,12 +2,16 @@ interface LoadingProps {
   label?: string
 }
 
-// Индикатор загрузки данных.
-function Loading({ label = 'Загрузка…' }: LoadingProps) {
+// Индикатор загрузки: пульсирующие плейсхолдеры вместо спиннера.
+function Loading({ label = 'Загружаем…' }: LoadingProps) {
   return (
-    <div className="flex items-center justify-center gap-2 py-16 text-muted">
-      <span className="animate-spin text-xl">⏳</span>
-      <span>{label}</span>
+    <div role="status" aria-live="polite" className="py-6">
+      <span className="sr-only">{label}</span>
+      <div aria-hidden="true" className="space-y-3">
+        <div className="h-5 w-2/5 animate-pulse rounded-md bg-line" />
+        <div className="h-4 w-4/5 animate-pulse rounded-md bg-line [animation-delay:120ms]" />
+        <div className="h-4 w-3/5 animate-pulse rounded-md bg-line [animation-delay:240ms]" />
+      </div>
     </div>
   )
 }

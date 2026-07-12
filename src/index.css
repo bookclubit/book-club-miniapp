@@ -1,16 +1,75 @@
 @import "tailwindcss";
 
-/* Светлая тема. Кастомные цвета через CSS-конфиг Tailwind v4 (@theme). */
+/*
+  Дизайн-токены клуба. Тёплая «бумажная» редакционная палитра:
+  тон закреплён (warm), цвета в oklch с общей светлотой/насыщенностью.
+  Шрифты: Source Serif 4 (дисплей) + Golos Text (текст и UI).
+*/
 @theme {
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-surface: #ffffff;
-  --color-canvas: #f5f7fb;
-  --color-muted: #64748b;
-  --color-line: #e2e8f0;
+  /* Нейтрали (тёплые) */
+  --color-canvas: oklch(97.5% 0.005 85);
+  --color-surface: oklch(99.2% 0.003 85);
+  --color-ink: oklch(24% 0.012 60);
+  --color-ink-soft: oklch(44% 0.015 60);
+  --color-ink-faint: oklch(58% 0.014 60);
+  --color-line: oklch(90% 0.009 85);
+  --color-line-strong: oklch(84% 0.012 85);
 
-  --radius-card: 16px;
-  --radius-btn: 12px;
+  /* Акцент: терракота. Один акцент на весь интерфейс. */
+  --color-accent: oklch(52% 0.125 45);
+  --color-accent-strong: oklch(45% 0.125 45);
+  --color-accent-soft: oklch(95.5% 0.022 45);
+
+  /* Семантические (одна светлота/хрома — гармония по hue) */
+  --color-success: oklch(52% 0.11 150);
+  --color-success-soft: oklch(95.5% 0.03 150);
+  --color-warn: oklch(52% 0.11 80);
+  --color-warn-soft: oklch(95.5% 0.035 80);
+  --color-danger: oklch(52% 0.13 25);
+  --color-danger-soft: oklch(95.5% 0.025 25);
+
+  /* Текст на акцентном фоне (в тёмной теме акцент светлеет — текст темнеет) */
+  --color-on-accent: #ffffff;
+
+  /* «Терминал»: блоки кода тёмные в обеих темах */
+  --color-terminal: oklch(24% 0.012 60);
+  --color-terminal-ink: oklch(96% 0.005 85);
+
+  --font-display: "Source Serif 4", Georgia, serif;
+  --font-sans: "Golos Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius-card: 14px;
+  --radius-btn: 10px;
+
+  --shadow-card: 0 1px 2px oklch(24% 0.012 60 / 0.05);
+  --shadow-lift: 0 10px 30px -12px oklch(24% 0.012 60 / 0.18), 0 2px 6px oklch(24% 0.012 60 / 0.06);
+}
+
+/* Тёмная тема: те же токены, перекрытые на корне (включается через data-theme). */
+[data-theme="dark"] {
+  --color-canvas: oklch(20% 0.01 60);
+  --color-surface: oklch(24% 0.012 60);
+  --color-ink: oklch(93% 0.007 85);
+  --color-ink-soft: oklch(76% 0.011 85);
+  --color-ink-faint: oklch(62% 0.012 85);
+  --color-line: oklch(31% 0.012 60);
+  --color-line-strong: oklch(39% 0.014 60);
+
+  --color-accent: oklch(72% 0.105 45);
+  --color-accent-strong: oklch(80% 0.09 45);
+  --color-accent-soft: oklch(30% 0.04 45);
+
+  --color-success: oklch(74% 0.1 150);
+  --color-success-soft: oklch(30% 0.045 150);
+  --color-warn: oklch(78% 0.1 80);
+  --color-warn-soft: oklch(31% 0.045 80);
+  --color-danger: oklch(72% 0.11 25);
+  --color-danger-soft: oklch(30% 0.045 25);
+
+  --color-on-accent: oklch(20% 0.01 60);
+
+  --shadow-card: 0 1px 2px oklch(0% 0 0 / 0.2);
+  --shadow-lift: 0 10px 30px -12px oklch(0% 0 0 / 0.5), 0 2px 6px oklch(0% 0 0 / 0.25);
 }
 
 html,
@@ -21,26 +80,172 @@ body,
 
 body {
   background-color: var(--color-canvas);
-  color: #0f172a;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+::selection {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+}
+
+/* Видимый фокус — всегда */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 @layer components {
-  /* Карточка: белый фон, скругление 16px, тень при наведении */
+  /* Дисплейная гарнитура для заголовков и названий книг */
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  /* Надзаголовок-«бровка» секции */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-accent;
+  }
+
   .card {
-    @apply block rounded-[16px] border border-line bg-surface p-5 shadow-sm transition-shadow duration-200;
+    @apply block rounded-card border border-line bg-surface p-5;
+    box-shadow: var(--shadow-card);
   }
 
   .card-hover {
-    @apply hover:shadow-lg hover:shadow-slate-200/60;
+    transition:
+      transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.25s ease;
   }
 
-  /* Основная кнопка: синий фон, белый текст, скругление 12px */
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lift);
+    border-color: var(--color-line-strong);
+  }
+
+  .card-hover:active {
+    transform: translateY(0);
+  }
+
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-[12px] bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-btn bg-accent px-5 py-2.5 text-sm font-semibold text-on-accent;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--color-accent-strong);
+  }
+
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  .btn-primary:disabled {
+    @apply cursor-not-allowed opacity-50;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-[12px] border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-canvas;
+    @apply inline-flex items-center justify-center gap-2 rounded-btn border border-line bg-surface px-5 py-2.5 text-sm font-semibold text-ink;
+    transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--color-line-strong);
+    background-color: var(--color-canvas);
+  }
+
+  .btn-ghost:active {
+    transform: scale(0.98);
+  }
+
+  /* Текстовая ссылка «назад» */
+  .link-back {
+    @apply inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft;
+    transition: color 0.2s ease;
+  }
+
+  .link-back:hover {
+    color: var(--color-accent);
+  }
+}
+
+/* --- Анимации появления --- */
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Элемент с каскадным появлением: задержка задаётся через --reveal-delay */
+.reveal {
+  animation: fade-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--reveal-delay, 0s);
+}
+
+/* --- 3D-переворот флеш-карточки --- */
+
+.flip-scene {
+  perspective: 1400px;
+}
+
+.flip-inner {
+  display: grid;
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+
+.flip-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.flip-face {
+  grid-area: 1 / 1;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flip-face-back {
+  transform: rotateY(180deg);
+}
+
+/* --- Прогресс-бар --- */
+
+.progress-fill {
+  transition: width 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* --- Уважение к reduced-motion --- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
