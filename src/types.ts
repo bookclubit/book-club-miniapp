@@ -123,3 +123,29 @@ export type StudyProgress = Record<string, CardProgress>
 
 // Оценка ответа пользователем (влияет на SM-2).
 export type ReviewGrade = 'again' | 'hard' | 'good' | 'easy'
+
+// --- Единый реестр контента (index.json в корне book-club-data) ---
+// Поддерживается автоматически через Codex CMS (bookclubit/book-club-cms).
+
+export interface IndexBook {
+  folder: string // имя папки в books/
+  id: string // id из meta.json
+  title: string
+  status: BookStatus
+  chapters: string[] // slug-и папок глав
+}
+
+export interface IndexSpeaker {
+  id: string
+  name: string
+  aliases: string[] // как спикер записан в .md-темах
+  avatar: string // путь от корня репозитория
+}
+
+export interface ContentIndex {
+  version: 1
+  active_book: string // папка книги, которую клуб читает сейчас
+  books: IndexBook[]
+  events: string[] // пути файлов относительно events/
+  speakers: IndexSpeaker[]
+}

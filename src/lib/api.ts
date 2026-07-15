@@ -3,6 +3,7 @@ import type {
   Chapter,
   ChapterWithSlug,
   ClubEvent,
+  ContentIndex,
   Flashcard,
   Topic,
 } from '../types'
@@ -12,22 +13,56 @@ import { parseTopicMarkdown } from './markdown'
 export const RAW_BASE =
   'https://raw.githubusercontent.com/bookclubit/book-club-data/main'
 
+// Источник списков — единый реестр index.json в book-club-data (его
+// поддерживает Codex CMS в каждом PR с контентом). Константы ниже — фолбэк
+// на случай, когда index.json недоступен (например, ещё не смержен).
+
 // Книги, показываемые в приложении (имена папок в books/).
 export const BOOK_IDS = ['docker-up-and-running', 'fluent-react'] as const
 
-// В репозитории данных нет индекса глав, а raw.githubusercontent.com не листает
-// директории. Поэтому slug-и глав (имена папок) для каждой книги задаём здесь.
-// При добавлении новых глав в данные — дополняй список.
+// Slug-и глав (имена папок) для каждой книги.
 export const CHAPTER_SLUGS: Record<string, string[]> = {
   'docker-up-and-running': ['01-vvedenie'],
   'fluent-react': [],
 }
 
-// Аналогично — список файлов событий в events/. Дополняй при добавлении встреч.
+// Список файлов событий в events/.
 export const EVENT_FILES = [
   'closed-chapters/2026-07-20-docker-glava-01.json',
   'live-talks/2026-07-25-docker-doklady.json',
 ]
+
+// --- Единый реестр контента ---
+
+// Актуальные таблицы для синхронных хелперов (speakerAvatar, readingProgress).
+// Инициализируются фолбэком и обновляются после загрузки index.json — к моменту
+// рендера контента реестр уже загружен, т.к. все fetch-функции ждут fetchIndex().
+let chapterSlugs: Record<string, string[]> = CHAPTER_SLUGS
+let speakerAvatars: Record<string, string> | null = null
+
+let indexPromise: Promise<ContentIndex | null> | null = null
+
+// Загружает index.json один раз за сессию. null — реестра нет или он битый.
+export function fetchIndex(): Promise<ContentIndex | null> {
+  indexPromise ??= fetch(`${RAW_BASE}/index.json`)
+    .then((res) => (res.ok ? (res.json() as Promise<ContentIndex>) : null))
+    .then((index) => {
+      if (index) {
+        chapterSlugs = Object.fromEntries(
+          index.books.map((b) => [b.folder, b.chapters]),
+        )
+        speakerAvatars = {}
+        for (const speaker of index.speakers) {
+          for (const alias of [speaker.name, ...speaker.aliases]) {
+            speakerAvatars[alias] = speaker.avatar
+          }
+        }
+      }
+      return index
+    })
+    .catch(() => null)
+  return indexPromise
+}
 
 // Телеграм-бот клуба (book-club-bot, @bookclubfrontbot). Через него —
 // регистрация спикеров: диплинк /start с полезной нагрузкой.
@@ -38,6 +73,7 @@ export function speakerRegistrationUrl(eventId: string): string {
 }
 
 // Аватарки спикеров клуба (media/speakers/). В .md-темах спикер указан по имени.
+// Фолбэк — реестр из index.json приоритетнее.
 export const SPEAKERS: Record<string, string> = {
   Антон: '/media/speakers/pomazkov-anton.webp',
   'Антон Помазков': '/media/speakers/pomazkov-anton.webp',
@@ -46,12 +82,12 @@ export const SPEAKERS: Record<string, string> = {
 }
 
 export function speakerAvatar(name: string): string | undefined {
-  return mediaUrl(SPEAKERS[name])
+  return mediaUrl((speakerAvatars ?? SPEAKERS)[name])
 }
 
-// Прогресс чтения книги: доля разобранных глав (по CHAPTER_SLUGS) от общего числа.
+// Прогресс чтения книги: доля разобранных глав от общего числа.
 export function readingProgress(folder: string, totalChapters: number): number {
-  const done = CHAPTER_SLUGS[folder]?.length ?? 0
+  const done = chapterSlugs[folder]?.length ?? 0
   if (totalChapters <= 0) return 0
   return Math.min(100, Math.round((done / totalChapters) * 100))
 }
@@ -98,16 +134,19 @@ async function fetchText(url: string): Promise<string> {
   return res.text()
 }
 
-// Загружает meta.json всех книг из BOOK_IDS. Ключ SWR: 'books'.
-// Возвращает пары «имя папки + мета», т.к. маршруты строятся по имени папки.
+// Загружает meta.json всех книг (список — из index.json, фолбэк BOOK_IDS).
+// Ключ SWR: 'books'. Возвращает пары «имя папки + мета», т.к. маршруты
+// строятся по имени папки.
 export interface BookWithFolder {
   folder: string
   meta: BookMeta
 }
 
 export async function fetchBooks(): Promise<BookWithFolder[]> {
+  const index = await fetchIndex()
+  const folders = index?.books.map((b) => b.folder) ?? [...BOOK_IDS]
   return Promise.all(
-    BOOK_IDS.map(async (folder) => ({
+    folders.map(async (folder) => ({
       folder,
       meta: await fetcher<BookMeta>(metaUrl(folder)),
     })),
@@ -116,7 +155,11 @@ export async function fetchBooks(): Promise<BookWithFolder[]> {
 
 // Загружает все главы книги вместе с их slug-ами. Ключ SWR: `chapters:${bookId}`.
 export async function fetchChapters(bookId: string): Promise<ChapterWithSlug[]> {
-  const slugs = CHAPTER_SLUGS[bookId] ?? []
+  const index = await fetchIndex()
+  const slugs =
+    index?.books.find((b) => b.folder === bookId)?.chapters ??
+    CHAPTER_SLUGS[bookId] ??
+    []
   const chapters = await Promise.all(
     slugs.map(async (slug) => {
       const chapter = await fetcher<Chapter>(chapterUrl(bookId, slug))
@@ -153,8 +196,10 @@ export async function fetchFlashcards(bookId: string): Promise<Flashcard[]> {
 
 // Загружает события клуба из events/. Ключ SWR: 'events'. Сортировка по дате.
 export async function fetchEvents(): Promise<ClubEvent[]> {
+  const index = await fetchIndex()
+  const files = index?.events ?? EVENT_FILES
   const events = await Promise.all(
-    EVENT_FILES.map((file) => fetcher<ClubEvent>(`${RAW_BASE}/events/${file}`)),
+    files.map((file) => fetcher<ClubEvent>(`${RAW_BASE}/events/${file}`)),
   )
   return events.sort((a, b) => a.date.localeCompare(b.date))
 }
