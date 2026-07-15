@@ -123,6 +123,19 @@ p {
     @apply text-xs font-semibold uppercase tracking-[0.14em] text-accent;
   }
 
+  /* Знак клуба: чёрная версия в светлой теме, белая — в тёмной */
+  .logo-mark-dark {
+    display: none;
+  }
+
+  [data-theme='dark'] .logo-mark-light {
+    display: none;
+  }
+
+  [data-theme='dark'] .logo-mark-dark {
+    display: block;
+  }
+
   .card {
     @apply block rounded-card border border-line bg-surface p-5;
     box-shadow: var(--shadow-card);
