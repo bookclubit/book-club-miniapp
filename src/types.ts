@@ -2,6 +2,18 @@
 
 export type BookStatus = 'reading' | 'planned' | 'finished'
 
+// Категория книги — вкладки-фильтры в каталоге. Клуб читает несколько книг
+// параллельно, категории помогают ориентироваться в списке.
+export type BookCategory = 'base' | 'algorithms' | 'tools' | 'frameworks' | 'ai'
+
+export const BOOK_CATEGORIES: Array<{ id: BookCategory; label: string }> = [
+  { id: 'base', label: 'База' },
+  { id: 'algorithms', label: 'Алгоритмы' },
+  { id: 'tools', label: 'Инструменты' },
+  { id: 'frameworks', label: 'Фреймворки' },
+  { id: 'ai', label: 'AI' },
+]
+
 export interface Author {
   name: string
   avatar?: string // путь относительно корня book-club-data, напр. /media/authors/x.webp
@@ -14,6 +26,7 @@ export interface BookMeta {
   edition?: number
   authors: Author[]
   status: BookStatus
+  category?: BookCategory
   cover?: string // путь относительно корня book-club-data
   tags: string[]
   description: string
