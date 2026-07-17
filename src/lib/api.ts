@@ -34,6 +34,12 @@ export function speakerRegistrationUrl(eventId: string): string {
   return `${BOT_URL}?start=speaker_${eventId}`
 }
 
+// Запись на встречу: бот сохранит регистрацию, сразу пришлёт ссылки
+// (созвон, доска, материалы) и напомнит в день встречи.
+export function eventJoinUrl(eventId: string): string {
+  return `${BOT_URL}?start=join_${eventId}`
+}
+
 // Аватарка спикера по имени или алиасу (в .md-темах спикер указан по имени).
 // Реестр к моменту вызова уже загружен страницей; иначе просто без аватарки.
 export function speakerAvatar(name: string): string | undefined {

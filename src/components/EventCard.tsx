@@ -1,4 +1,4 @@
-import { mediaUrl, speakerRegistrationUrl } from '../lib/api'
+import { eventJoinUrl, mediaUrl, speakerRegistrationUrl } from '../lib/api'
 import { formatEventDate, formatWeekday, isPast } from '../lib/format'
 import Icon from './Icon'
 import type { ClubEvent } from '../types'
@@ -70,15 +70,35 @@ function EventCard({ event }: EventCardProps) {
 
       {!past ? (
         <div className="mt-4 flex flex-wrap gap-2">
+          <a
+            href={eventJoinUrl(event.id)}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-primary px-4 py-2 text-xs"
+          >
+            <Icon name="check" size={14} />
+            Пойду
+          </a>
           {event.type === 'live-talk' ? (
             <a
               href={speakerRegistrationUrl(event.id)}
               target="_blank"
               rel="noreferrer"
-              className="btn-primary px-4 py-2 text-xs"
+              className="btn-ghost px-4 py-2 text-xs"
             >
               <Icon name="send" size={14} />
               Стать спикером
+            </a>
+          ) : null}
+          {event.call_url ? (
+            <a
+              href={event.call_url}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-ghost px-4 py-2 text-xs"
+            >
+              <Icon name="external" size={14} />
+              Созвон
             </a>
           ) : null}
           {event.type === 'live-talk' && event.streams?.youtube ? (
@@ -114,6 +134,18 @@ function EventCard({ event }: EventCardProps) {
               Доска заметок
             </a>
           ) : null}
+          {(event.materials ?? []).map((m) => (
+            <a
+              key={m.url}
+              href={m.url}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-ghost px-4 py-2 text-xs"
+            >
+              <Icon name="file" size={14} />
+              {m.title}
+            </a>
+          ))}
         </div>
       ) : null}
     </article>
