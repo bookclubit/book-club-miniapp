@@ -34,13 +34,14 @@ GitHub-репозитория `book-club-data` (организация `bookclub
 - `events/closed-chapters/*.json` и `events/live-talks/*.json` — встречи клуба
 - Пути к изображениям в данных относительные (`/media/...`) — оборачивать в `mediaUrl()` из `api.ts`
 
-`raw.githubusercontent.com` не умеет листать директории, поэтому в `src/lib/api.ts`
-вручную поддерживаются списки: `BOOK_IDS` (папки книг), `CHAPTER_SLUGS` (папки глав
-по книгам), `EVENT_FILES` (файлы событий), `SPEAKERS` (имя спикера → аватарка из
-`media/speakers/`). При добавлении данных — дополняй их.
+`raw.githubusercontent.com` не умеет листать директории, поэтому список книг
+(с главами), событий и спикеров приложение берёт из единого реестра
+`index.json` в корне book-club-data (`fetchIndex()` в `api.ts`, кэш на сессию).
+Реестр ведёт CMS — контент, добавленный через неё, появляется в miniapp без
+правок кода. Захардкоженных списков больше нет.
 
 Прогресс чтения книги (`readingProgress` в `api.ts`) считается как доля разобранных
-глав (`CHAPTER_SLUGS`) от `total_chapters` из meta.
+глав (из реестра) от `total_chapters` из meta.
 
 ## Телеграм-бот
 Бот клуба — `@bookclubfrontbot` (репозиторий `book-club-bot`, Cloudflare Workers).

@@ -136,3 +136,31 @@ export type StudyProgress = Record<string, CardProgress>
 
 // Оценка ответа пользователем (влияет на SM-2).
 export type ReviewGrade = 'again' | 'hard' | 'good' | 'easy'
+
+// --- Единый реестр контента (index.json в корне book-club-data) ---
+// raw.githubusercontent.com не листает директории, поэтому список книг, глав,
+// событий и спикеров ведёт CMS в index.json; приложение читает его при старте.
+
+export interface IndexBook {
+  folder: string
+  id: string
+  title: string
+  status: BookStatus
+  category?: BookCategory
+  chapters: string[] // slug-и папок глав
+}
+
+export interface IndexSpeaker {
+  id: string
+  name: string
+  aliases: string[]
+  avatar: string
+}
+
+export interface ContentIndex {
+  version: 1
+  active_book: string
+  books: IndexBook[]
+  events: string[] // пути относительно events/
+  speakers: IndexSpeaker[]
+}

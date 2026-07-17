@@ -4,7 +4,7 @@ import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
-import { BOOK_IDS, fetchBooks, fetchFlashcards, mediaUrl } from '../lib/api'
+import { fetchBooks, fetchFlashcards, mediaUrl } from '../lib/api'
 import type { BookWithFolder } from '../lib/api'
 import { plural } from '../lib/format'
 import { isDue, loadProgress } from '../lib/storage'
@@ -40,10 +40,7 @@ async function fetchStudyBooks(): Promise<StudyBook[]> {
 
 // Вкладка «Карточки»: выбор книги для интервального повторения.
 function StudyIndex() {
-  const { data, error, isLoading } = useSWR<StudyBook[]>(
-    `study-books:${BOOK_IDS.join(',')}`,
-    fetchStudyBooks,
-  )
+  const { data, error, isLoading } = useSWR<StudyBook[]>('study-books', fetchStudyBooks)
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
