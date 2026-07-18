@@ -10,6 +10,7 @@ import {
   fetchClaims,
   fetchEventChapterTopics,
   fetchEvents,
+  mediaUrl,
   speakerAvatar,
   speakerUrl,
 } from '../lib/api'
@@ -142,19 +143,21 @@ function EventBody({
     () => fetchEventChapterTopics(event.book_id!, event.chapter!),
   )
 
+  // Слот занят либо заявкой из бота (D1), либо докладом, назначенным в CMS.
+  const talks = event.type === 'live-talk' ? event.talks : []
   const slots: TopicSlot[] | undefined = topics?.map((topic) => {
     const claim = claims.find((c) => c.topic_id === topic.id)
-    return {
-      id: topic.id,
-      title: topic.title,
-      speaker: claim
-        ? {
-            name: claim.speaker,
-            avatar: speakerAvatar(claim.speaker),
-            pending: claim.status !== 'confirmed',
-          }
-        : undefined,
-    }
+    const talk = talks.find((t) => t.topic_id === topic.id || t.title === topic.title)
+    const speaker = claim
+      ? {
+          name: claim.speaker,
+          avatar: speakerAvatar(claim.speaker),
+          pending: claim.status !== 'confirmed',
+        }
+      : talk
+        ? { name: talk.speaker, avatar: mediaUrl(talk.avatar) ?? speakerAvatar(talk.speaker) }
+        : undefined
+    return { id: topic.id, title: topic.title, speaker }
   })
 
   return <EventCard event={event} topicSlots={slots} />
