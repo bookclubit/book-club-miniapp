@@ -2,20 +2,12 @@ import { useState } from 'react'
 import useSWR from 'swr'
 import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
-import EventCard from '../components/EventCard'
-import type { TopicSlot } from '../components/EventCard'
+import EventProgramCard from '../components/EventProgramCard'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
-import {
-  fetchClaims,
-  fetchEventChapterTopics,
-  fetchEvents,
-  mediaUrl,
-  speakerAvatar,
-  speakerUrl,
-} from '../lib/api'
+import { fetchClaims, fetchEvents, speakerUrl } from '../lib/api'
 import type { TopicClaim } from '../lib/api'
-import type { ClubEvent, TopicRef } from '../types'
+import type { ClubEvent } from '../types'
 
 type Tab = 'plan' | 'archive'
 
@@ -119,49 +111,12 @@ function TimelineItem({
       </div>
       <div className="relative min-w-0 grow border-l border-line pl-5">
         <span className="absolute -left-1.25 top-5 h-2.5 w-2.5 rounded-full border-2 border-accent bg-canvas" />
-        <EventBody event={event} claims={claims} showSlots={showSlots} />
+        <EventProgramCard event={event} claims={claims} showSlots={showSlots} />
       </div>
     </div>
   )
 }
 
-// Карточка встречи; для «докладов» плана подгружает слоты тем главы.
-function EventBody({
-  event,
-  claims,
-  showSlots,
-}: {
-  event: ClubEvent
-  claims: TopicClaim[]
-  showSlots: boolean
-}) {
-  const withTopics =
-    showSlots && event.type === 'live-talk' && Boolean(event.book_id && event.chapter)
-
-  const { data: topics } = useSWR<TopicRef[]>(
-    withTopics ? `plan-topics:${event.book_id}:${event.chapter}` : null,
-    () => fetchEventChapterTopics(event.book_id!, event.chapter!),
-  )
-
-  // Слот занят либо заявкой из бота (D1), либо докладом, назначенным в CMS.
-  const talks = event.type === 'live-talk' ? event.talks : []
-  const slots: TopicSlot[] | undefined = topics?.map((topic) => {
-    const claim = claims.find((c) => c.topic_id === topic.id)
-    const talk = talks.find((t) => t.topic_id === topic.id || t.title === topic.title)
-    const speaker = claim
-      ? {
-          name: claim.speaker,
-          avatar: speakerAvatar(claim.speaker),
-          pending: claim.status !== 'confirmed',
-        }
-      : talk
-        ? { name: talk.speaker, avatar: mediaUrl(talk.avatar) ?? speakerAvatar(talk.speaker) }
-        : undefined
-    return { id: topic.id, title: topic.title, speaker }
-  })
-
-  return <EventCard event={event} topicSlots={slots} />
-}
 
 function TabButton({
   active,

@@ -3,24 +3,28 @@ import useSWR from 'swr'
 import BookCard from '../components/BookCard'
 import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
-import EventCard from '../components/EventCard'
+import EventProgramCard from '../components/EventProgramCard'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import SocialLinks from '../components/SocialLinks'
-import { fetchBooks, fetchEvents, speakerUrl } from '../lib/api'
-import type { BookWithFolder } from '../lib/api'
+import { fetchBooks, fetchClaims, fetchEvents, speakerUrl } from '../lib/api'
+import type { BookWithFolder, TopicClaim } from '../lib/api'
 import type { ClubEvent } from '../types'
 
 // Главная: интро с соцсетями, ближайшие встречи и текущая книга из book-club-data.
 function Home() {
   const books = useSWR<BookWithFolder[]>('books', fetchBooks)
   const events = useSWR<ClubEvent[]>('events', fetchEvents)
+  const { data: claims } = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
 
   const reading = books.data?.filter(({ meta }) => meta.status === 'reading') ?? []
 
-  // Ближайшие встречи: только будущие (events уже отсортированы по дате), максимум две.
+  // Ближайшие встречи — как на вкладке «Встречи»: не ушедшие в архив (finished),
+  // из будущих по дате (events уже отсортированы), максимум две.
   const today = new Date().toISOString().slice(0, 10)
-  const upcoming = (events.data ?? []).filter((e) => e.date >= today).slice(0, 2)
+  const upcoming = (events.data ?? [])
+    .filter((e) => !e.finished && e.date >= today)
+    .slice(0, 2)
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
@@ -63,7 +67,7 @@ function Home() {
                   className="reveal"
                   style={{ '--reveal-delay': `${150 + i * 90}ms` } as React.CSSProperties}
                 >
-                  <EventCard event={event} />
+                  <EventProgramCard event={event} claims={claims ?? []} showSlots />
                 </div>
               ))}
             </div>
