@@ -142,10 +142,21 @@ function EventCard({ event, topicSlots }: EventCardProps) {
                   {talk.speaker.slice(0, 1)}
                 </span>
               )}
-              <div className="min-w-0">
+              <div className="min-w-0 grow">
                 <p className="truncate text-sm font-medium text-ink">{talk.title}</p>
                 <p className="text-xs text-ink-faint">{talk.speaker}</p>
               </div>
+              {talk.slides_url ? (
+                <a
+                  href={talk.slides_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn-ghost shrink-0 px-3 py-1.5 text-xs"
+                >
+                  <Icon name="external" size={13} />
+                  Слайды
+                </a>
+              ) : null}
             </li>
           ))}
         </ul>

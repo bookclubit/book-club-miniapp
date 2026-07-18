@@ -136,8 +136,14 @@ function Speaker() {
                     {t.talkTitle}
                   </h3>
                   <p className="mt-1 text-sm text-ink-soft">{t.eventTitle}</p>
-                  {t.youtube || t.vk ? (
+                  {t.slidesUrl || t.youtube || t.vk ? (
                     <div className="mt-3 flex flex-wrap gap-2">
+                      {t.slidesUrl ? (
+                        <a href={t.slidesUrl} target="_blank" rel="noreferrer" className="btn-ghost px-4 py-2 text-xs">
+                          <Icon name="external" size={14} />
+                          Слайды
+                        </a>
+                      ) : null}
                       {t.youtube ? (
                         <a href={t.youtube} target="_blank" rel="noreferrer" className="btn-ghost px-4 py-2 text-xs">
                           <Icon name="play" size={14} />

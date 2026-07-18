@@ -7,6 +7,7 @@ export interface SpeakerTalk {
   date: string
   bookId?: string
   talkTitle: string
+  slidesUrl?: string
   youtube?: string
   vk?: string
   finished: boolean
@@ -29,6 +30,7 @@ export function collectSpeakerTalks(
               date: e.date,
               bookId: e.book_id,
               talkTitle: t.title,
+              slidesUrl: t.slides_url,
               youtube: e.streams?.youtube,
               vk: e.streams?.vk,
               finished: Boolean(e.finished),
