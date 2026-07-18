@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
+import BottomNav from './components/BottomNav'
 import Header from './components/Header'
 import Book from './pages/Book'
 import Books from './pages/Books'
@@ -48,7 +49,7 @@ function App() {
       <ScrollToTop />
       <Header />
       <AnimatedRoutes />
-      <footer className="mx-auto max-w-5xl px-4 pb-10 pt-16 sm:px-6">
+      <footer className="mx-auto max-w-5xl px-4 pb-28 pt-16 sm:px-6 sm:pb-10">
         <p className="border-t border-line pt-5 text-xs text-ink-faint">
           Данные клуба открыты на{' '}
           <a
@@ -61,6 +62,7 @@ function App() {
           </a>
         </p>
       </footer>
+      <BottomNav />
     </BrowserRouter>
   )
 }

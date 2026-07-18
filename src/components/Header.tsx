@@ -18,11 +18,12 @@ function navClass({ isActive }: { isActive: boolean }): string {
   ].join(' ')
 }
 
-// Шапка: словесный знак, вкладки разделов и переключатель темы.
+// Шапка: словесный знак, вкладки разделов (десктоп) и переключатель темы.
+// На мобильных навигация вынесена в нижнюю таб-панель (BottomNav).
 function Header() {
   return (
     <header className="sticky top-0 z-10 border-b border-line bg-surface/85 backdrop-blur-md">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 sm:px-6">
+      <div className="mx-auto flex max-w-5xl items-center gap-x-6 px-4 py-3 sm:px-6">
         <Link
           to="/"
           className="flex items-center gap-2.5 font-display text-lg font-semibold tracking-tight text-ink"
@@ -33,7 +34,10 @@ function Header() {
           Книжный клуб
         </Link>
 
-        <nav aria-label="Основная навигация" className="order-3 flex w-full gap-5 sm:order-0 sm:w-auto sm:flex-1">
+        <nav
+          aria-label="Основная навигация"
+          className="hidden flex-1 gap-5 sm:flex"
+        >
           {NAV.map(({ to, label, end }) => (
             <NavLink key={to} to={to} end={end} className={navClass}>
               {label}

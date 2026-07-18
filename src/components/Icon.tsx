@@ -16,6 +16,8 @@ export type IconName =
   | 'sun'
   | 'moon'
   | 'send'
+  | 'home'
+  | 'users'
 
 const PATHS: Record<IconName, React.ReactNode> = {
   'arrow-left': <path d="M15.5 19 8 12l7.5-7" />,
@@ -72,6 +74,19 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   moon: <path d="M20 13.5A8 8 0 0 1 10.5 4 8 8 0 1 0 20 13.5z" />,
+  home: (
+    <>
+      <path d="M3.5 11 12 4l8.5 7" />
+      <path d="M5.5 9.5V20h13V9.5" />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3.5 20v-1.2A4.3 4.3 0 0 1 7.8 14.5h2.4a4.3 4.3 0 0 1 4.3 4.3V20" />
+      <path d="M15.6 5.1a3.2 3.2 0 0 1 0 5.8M16.8 14.6a4.3 4.3 0 0 1 3.7 4.2V20" />
+    </>
+  ),
   send: (
     <>
       <path d="M21 3.5 3 10.8l6.2 2.5L11.7 20z" />
