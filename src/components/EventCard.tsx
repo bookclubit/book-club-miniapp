@@ -1,4 +1,4 @@
-import { eventJoinUrl, mediaUrl, speakerRegistrationUrl } from '../lib/api'
+import { eventJoinUrl, mediaUrl } from '../lib/api'
 import { formatEventDate, formatWeekday, isPast } from '../lib/format'
 import Icon from './Icon'
 import type { ClubEvent } from '../types'
@@ -7,11 +7,12 @@ interface EventCardProps {
   event: ClubEvent
 }
 
-// Карточка встречи клуба: закрытый разбор главы или открытый эфир с докладами.
+// Карточка встречи: открытое обсуждение главы или выступления (запись докладов).
+// У будущих — «Пойду» и ссылки; у прошедших — записи трансляций.
 function EventCard({ event }: EventCardProps) {
   const past = isPast(event.date)
   const kind =
-    event.type === 'closed-chapter' ? 'Закрытая встреча' : 'Открытый эфир'
+    event.type === 'closed-chapter' ? 'Открытое обсуждение' : 'Выступления'
 
   return (
     <article className={`card ${past ? 'opacity-60' : ''}`}>
@@ -68,8 +69,8 @@ function EventCard({ event }: EventCardProps) {
         </ul>
       ) : null}
 
-      {!past ? (
-        <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-4 flex flex-wrap gap-2">
+        {!past ? (
           <a
             href={eventJoinUrl(event.id)}
             target="_blank"
@@ -79,75 +80,64 @@ function EventCard({ event }: EventCardProps) {
             <Icon name="check" size={14} />
             Пойду
           </a>
-          {event.type === 'live-talk' ? (
-            <a
-              href={speakerRegistrationUrl(event.id)}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-ghost px-4 py-2 text-xs"
-            >
-              <Icon name="send" size={14} />
-              Стать спикером
-            </a>
-          ) : null}
-          {event.call_url ? (
-            <a
-              href={event.call_url}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-ghost px-4 py-2 text-xs"
-            >
-              <Icon name="external" size={14} />
-              Созвон
-            </a>
-          ) : null}
-          {event.type === 'live-talk' && event.streams?.youtube ? (
-            <a
-              href={event.streams.youtube}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-ghost px-4 py-2 text-xs"
-            >
-              <Icon name="play" size={14} />
-              YouTube
-            </a>
-          ) : null}
-          {event.type === 'live-talk' && event.streams?.vk ? (
-            <a
-              href={event.streams.vk}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-ghost px-4 py-2 text-xs"
-            >
-              <Icon name="play" size={14} />
-              VK Видео
-            </a>
-          ) : null}
-          {event.type === 'closed-chapter' && event.notes_board_url ? (
-            <a
-              href={event.notes_board_url}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-ghost px-4 py-2 text-xs"
-            >
-              <Icon name="external" size={14} />
-              Доска заметок
-            </a>
-          ) : null}
-          {(event.materials ?? []).map((m) => (
-            <a
-              key={m.url}
-              href={m.url}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-ghost px-4 py-2 text-xs"
-            >
-              <Icon name="file" size={14} />
-              {m.title}
-            </a>
-          ))}
-        </div>
-      ) : null}
+        ) : null}
+        {!past && event.call_url ? (
+          <a
+            href={event.call_url}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-ghost px-4 py-2 text-xs"
+          >
+            <Icon name="external" size={14} />
+            Подключиться
+          </a>
+        ) : null}
+        {event.streams?.youtube ? (
+          <a
+            href={event.streams.youtube}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-ghost px-4 py-2 text-xs"
+          >
+            <Icon name="play" size={14} />
+            {past ? 'Запись YouTube' : 'YouTube'}
+          </a>
+        ) : null}
+        {event.streams?.vk ? (
+          <a
+            href={event.streams.vk}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-ghost px-4 py-2 text-xs"
+          >
+            <Icon name="play" size={14} />
+            {past ? 'Запись VK' : 'VK Видео'}
+          </a>
+        ) : null}
+        {!past && event.type === 'closed-chapter' && event.notes_board_url ? (
+          <a
+            href={event.notes_board_url}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-ghost px-4 py-2 text-xs"
+          >
+            <Icon name="external" size={14} />
+            Доска заметок
+          </a>
+        ) : null}
+        {(event.materials ?? []).map((m) => (
+          <a
+            key={m.url}
+            href={m.url}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-ghost px-4 py-2 text-xs"
+          >
+            <Icon name="file" size={14} />
+            {m.title}
+          </a>
+        ))}
+      </div>
     </article>
   )
 }

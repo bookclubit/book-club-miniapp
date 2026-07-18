@@ -4,6 +4,7 @@ import ThemeToggle from './ThemeToggle'
 const NAV = [
   { to: '/', label: 'Главная', end: true },
   { to: '/books', label: 'Книги', end: false },
+  { to: '/meetings', label: 'Встречи', end: false },
   { to: '/study', label: 'Карточки', end: false },
 ]
 

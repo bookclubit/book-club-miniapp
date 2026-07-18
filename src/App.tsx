@@ -5,6 +5,7 @@ import Book from './pages/Book'
 import Books from './pages/Books'
 import Chapter from './pages/Chapter'
 import Home from './pages/Home'
+import Meetings from './pages/Meetings'
 import Study from './pages/Study'
 import StudyIndex from './pages/StudyIndex'
 
@@ -25,6 +26,7 @@ function AnimatedRoutes() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/books" element={<Books />} />
+        <Route path="/meetings" element={<Meetings />} />
         <Route path="/book/:bookId" element={<Book />} />
         <Route path="/book/:bookId/chapter/:chapterId" element={<Chapter />} />
         <Route path="/study" element={<StudyIndex />} />

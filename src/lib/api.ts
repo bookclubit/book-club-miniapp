@@ -6,6 +6,7 @@ import type {
   ContentIndex,
   Flashcard,
   Topic,
+  TopicRef,
 } from '../types'
 import { parseTopicMarkdown } from './markdown'
 
@@ -30,14 +31,53 @@ export async function fetchIndex(): Promise<ContentIndex> {
 // регистрация спикеров: диплинк /start с полезной нагрузкой.
 export const BOT_URL = 'https://t.me/bookclubfrontbot'
 
-export function speakerRegistrationUrl(eventId: string): string {
-  return `${BOT_URL}?start=speaker_${eventId}`
+// Заявка на доклад — глобальная, не привязана к встрече: бот предложит
+// темы из плана (кроме ближайшей встречи) или свою тему.
+export function speakerUrl(): string {
+  return `${BOT_URL}?start=speaker`
 }
 
 // Запись на встречу: бот сохранит регистрацию, сразу пришлёт ссылки
-// (созвон, доска, материалы) и напомнит в день встречи.
+// (созвон, доска, материалы) и напомнит утром, за час и в начале.
 export function eventJoinUrl(eventId: string): string {
   return `${BOT_URL}?start=join_${eventId}`
+}
+
+// --- Занятость тем (оперативные данные из D1 бота, не из git) ---
+
+const BOT_API = 'https://book-club-bot.vitrumbeta.workers.dev'
+
+export interface TopicClaim {
+  topic_id: string | null
+  topic_title: string
+  book_id: string | null
+  chapter: string | null
+  status: 'pending' | 'confirmed'
+  speaker: string
+}
+
+export async function fetchClaims(): Promise<TopicClaim[]> {
+  const data = await fetcher<{ claims: TopicClaim[] }>(`${BOT_API}/api/claims`)
+  return data.claims
+}
+
+// Темы главы события для плана: book_id события может быть и id из meta,
+// и именем папки — резолвим через реестр.
+export async function fetchEventChapterTopics(
+  bookId: string,
+  chapterSlug: string,
+): Promise<TopicRef[]> {
+  const index = await fetchIndex()
+  const folder =
+    index.books.find((b) => b.id === bookId)?.folder ??
+    index.books.find((b) => b.folder === bookId)?.folder
+  if (!folder) return []
+  try {
+    const chapter = await fetcher<Chapter>(chapterUrl(folder, chapterSlug))
+    return chapter.topics
+  } catch {
+    return []
+  }
 }
 
 // Аватарка спикера по имени или алиасу (в .md-темах спикер указан по имени).
