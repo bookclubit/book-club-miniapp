@@ -3,12 +3,14 @@ import useSWR from 'swr'
 import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import EventCard from '../components/EventCard'
+import type { TopicSlot } from '../components/EventCard'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import {
   fetchClaims,
   fetchEventChapterTopics,
   fetchEvents,
+  speakerAvatar,
   speakerUrl,
 } from '../lib/api'
 import type { TopicClaim } from '../lib/api'
@@ -16,16 +18,16 @@ import type { ClubEvent, TopicRef } from '../types'
 
 type Tab = 'plan' | 'archive'
 
-// Вкладка «Встречи»: план на месяц± и архив с записями. У встреч плана видно
-// программу главы и занятость тем (кто уже взял доклад, на что есть заявка).
+// Вкладка «Встречи»: таймлайн плана и архив с записями. У встреч плана типа
+// «доклады» видно слоты тем главы — занятые (спикер/заявка) и свободные.
 function Meetings() {
   const { data: events, error, isLoading } = useSWR<ClubEvent[]>('events', fetchEvents)
   const { data: claims } = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
   const [tab, setTab] = useState<Tab>('plan')
 
-  const today = new Date().toISOString().slice(0, 10)
-  const plan = (events ?? []).filter((e) => e.date >= today)
-  const archive = (events ?? []).filter((e) => e.date < today).reverse()
+  // Завершённые (явный флаг) — в архив, остальные — в план.
+  const plan = (events ?? []).filter((e) => !e.finished)
+  const archive = (events ?? []).filter((e) => e.finished).reverse()
   const visible = tab === 'plan' ? plan : archive
 
   return (
@@ -33,7 +35,7 @@ function Meetings() {
       <header className="reveal">
         <h1 className="font-display text-3xl font-semibold text-ink sm:text-4xl">Встречи</h1>
         <p className="mt-2 text-ink-soft">
-          План на ближайший месяц и архив с записями. Хочешь выступить — выбирай
+          План ближайших встреч и архив с записями. Хочешь выступить — выбирай
           свободную тему из плана.
         </p>
         <a
@@ -59,7 +61,7 @@ function Meetings() {
         </TabButton>
       </div>
 
-      <div className="mt-6">
+      <div className="mt-8">
         {isLoading ? (
           <Loading label="Загружаем встречи…" />
         ) : error ? (
@@ -70,28 +72,92 @@ function Meetings() {
             hint={tab === 'plan' ? 'Скоро появятся новые встречи.' : 'Записи появятся после первых встреч.'}
           />
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {visible.map((event, i) => (
-              <div
+              <TimelineItem
                 key={event.id}
-                className="reveal"
-                style={{ '--reveal-delay': `${80 + i * 90}ms` } as React.CSSProperties}
-              >
-                <EventCard event={event} />
-                {tab === 'plan' && event.book_id && event.chapter ? (
-                  <TopicAvailability
-                    bookId={event.book_id}
-                    chapterSlug={event.chapter}
-                    claims={claims ?? []}
-                  />
-                ) : null}
-              </div>
+                event={event}
+                claims={claims ?? []}
+                showSlots={tab === 'plan'}
+                delay={80 + i * 90}
+              />
             ))}
           </div>
         )}
       </div>
     </div>
   )
+}
+
+// Строка таймлайна: слева дата, справа карточка встречи.
+function TimelineItem({
+  event,
+  claims,
+  showSlots,
+  delay,
+}: {
+  event: ClubEvent
+  claims: TopicClaim[]
+  showSlots: boolean
+  delay: number
+}) {
+  const date = new Date(`${event.date}T00:00:00`)
+  const day = date.getDate()
+  const month = date.toLocaleDateString('ru-RU', { month: 'short' }).replace('.', '')
+  const weekday = date.toLocaleDateString('ru-RU', { weekday: 'short' })
+
+  return (
+    <div
+      className="reveal flex gap-4"
+      style={{ '--reveal-delay': `${delay}ms` } as React.CSSProperties}
+    >
+      <div className="w-12 shrink-0 pt-4 text-right sm:w-14">
+        <div className="font-display text-2xl font-semibold leading-none text-ink">{day}</div>
+        <div className="mt-1 text-xs uppercase tracking-wide text-ink-faint">{month}</div>
+        <div className="text-xs text-ink-faint">{weekday}</div>
+      </div>
+      <div className="relative min-w-0 grow border-l border-line pl-5">
+        <span className="absolute -left-1.25 top-5 h-2.5 w-2.5 rounded-full border-2 border-accent bg-canvas" />
+        <EventBody event={event} claims={claims} showSlots={showSlots} />
+      </div>
+    </div>
+  )
+}
+
+// Карточка встречи; для «докладов» плана подгружает слоты тем главы.
+function EventBody({
+  event,
+  claims,
+  showSlots,
+}: {
+  event: ClubEvent
+  claims: TopicClaim[]
+  showSlots: boolean
+}) {
+  const withTopics =
+    showSlots && event.type === 'live-talk' && Boolean(event.book_id && event.chapter)
+
+  const { data: topics } = useSWR<TopicRef[]>(
+    withTopics ? `plan-topics:${event.book_id}:${event.chapter}` : null,
+    () => fetchEventChapterTopics(event.book_id!, event.chapter!),
+  )
+
+  const slots: TopicSlot[] | undefined = topics?.map((topic) => {
+    const claim = claims.find((c) => c.topic_id === topic.id)
+    return {
+      id: topic.id,
+      title: topic.title,
+      speaker: claim
+        ? {
+            name: claim.speaker,
+            avatar: speakerAvatar(claim.speaker),
+            pending: claim.status !== 'confirmed',
+          }
+        : undefined,
+    }
+  })
+
+  return <EventCard event={event} topicSlots={slots} />
 }
 
 function TabButton({
@@ -116,47 +182,6 @@ function TabButton({
     >
       {children}
     </button>
-  )
-}
-
-// Программа главы с занятостью тем (заявки/брони — из D1 бота).
-function TopicAvailability({
-  bookId,
-  chapterSlug,
-  claims,
-}: {
-  bookId: string
-  chapterSlug: string
-  claims: TopicClaim[]
-}) {
-  const { data: topics } = useSWR<TopicRef[]>(`plan-topics:${bookId}:${chapterSlug}`, () =>
-    fetchEventChapterTopics(bookId, chapterSlug),
-  )
-  if (!topics || topics.length === 0) return null
-
-  return (
-    <div className="mt-2 rounded-card border border-line bg-surface px-5 py-4">
-      <p className="text-xs font-semibold uppercase tracking-widest text-ink-faint">
-        Темы главы
-      </p>
-      <ul className="mt-3 space-y-2">
-        {topics.map((topic) => {
-          const claim = claims.find((c) => c.topic_id === topic.id)
-          return (
-            <li key={topic.id} className="flex items-center justify-between gap-3 text-sm">
-              <span className={claim ? 'text-ink-faint' : 'text-ink'}>{topic.title}</span>
-              {claim ? (
-                <span className="shrink-0 text-xs text-ink-faint">
-                  {claim.status === 'confirmed' ? '🔒 занята' : '🕐 заявка'} · {claim.speaker}
-                </span>
-              ) : (
-                <span className="shrink-0 text-xs font-medium text-accent">свободна</span>
-              )}
-            </li>
-          )
-        })}
-      </ul>
-    </div>
   )
 }
 

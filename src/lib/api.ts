@@ -100,6 +100,13 @@ export function speakerAvatar(name: string): string | undefined {
   return mediaUrl(speaker?.avatar)
 }
 
+// Название книги по её id (или имени папки) из реестра — для карточек встреч.
+// Реестр к моменту вызова уже загружен (fetchEvents дёргает fetchIndex).
+export function bookTitleById(bookId?: string): string | undefined {
+  if (!bookId) return undefined
+  return contentIndex?.books.find((b) => b.id === bookId || b.folder === bookId)?.title
+}
+
 // Прогресс чтения книги: доля разобранных глав (из реестра) от общего числа.
 export function readingProgress(folder: string, totalChapters: number): number {
   const done =
