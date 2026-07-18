@@ -1,4 +1,6 @@
 import { Link, NavLink } from 'react-router-dom'
+import { useAuth } from '../lib/useAuth'
+import Icon from './Icon'
 import ThemeToggle from './ThemeToggle'
 
 const NAV = [
@@ -45,11 +47,36 @@ function Header() {
           ))}
         </nav>
 
-        <span className="ml-auto sm:ml-0">
+        <div className="ml-auto flex items-center gap-3 sm:ml-0">
+          <AccountLink />
           <ThemeToggle />
-        </span>
+        </div>
       </div>
     </header>
+  )
+}
+
+// Вход в аккаунт: аватар, если вошёл, иначе иконка пользователя.
+function AccountLink() {
+  const { user } = useAuth()
+  return (
+    <NavLink
+      to="/account"
+      aria-label="Аккаунт"
+      className={({ isActive }) =>
+        `flex h-8 w-8 items-center justify-center rounded-full transition ${
+          isActive ? 'ring-2 ring-accent' : ''
+        }`
+      }
+    >
+      {user?.photo_url ? (
+        <img src={user.photo_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+      ) : (
+        <span className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-surface text-ink-faint">
+          <Icon name="users" size={17} />
+        </span>
+      )}
+    </NavLink>
   )
 }
 

@@ -57,7 +57,7 @@ export function eventJoinUrl(eventId: string): string {
 
 // --- Занятость тем (оперативные данные из D1 бота, не из git) ---
 
-const BOT_API = 'https://book-club-bot.vitrumbeta.workers.dev'
+export const BOT_API = 'https://book-club-bot.vitrumbeta.workers.dev'
 
 export interface TopicClaim {
   topic_id: string | null

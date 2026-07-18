@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import BottomNav from './components/BottomNav'
 import Header from './components/Header'
+import { AuthProvider } from './lib/useAuth'
+import Account from './pages/Account'
 import Book from './pages/Book'
 import Books from './pages/Books'
 import Chapter from './pages/Chapter'
@@ -32,6 +34,7 @@ function AnimatedRoutes() {
         <Route path="/meetings" element={<Meetings />} />
         <Route path="/speakers" element={<Speakers />} />
         <Route path="/speaker/:id" element={<Speaker />} />
+        <Route path="/account" element={<Account />} />
         <Route path="/book/:bookId" element={<Book />} />
         <Route path="/book/:bookId/chapter/:chapterId" element={<Chapter />} />
         <Route path="/study" element={<StudyIndex />} />
@@ -46,10 +49,11 @@ function AnimatedRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <ScrollToTop />
-      <Header />
-      <AnimatedRoutes />
-      <footer className="mx-auto max-w-5xl px-4 pb-28 pt-16 sm:px-6 sm:pb-10">
+      <AuthProvider>
+        <ScrollToTop />
+        <Header />
+        <AnimatedRoutes />
+        <footer className="mx-auto max-w-5xl px-4 pb-28 pt-16 sm:px-6 sm:pb-10">
         <p className="border-t border-line pt-5 text-xs text-ink-faint">
           Данные клуба открыты на{' '}
           <a
@@ -61,8 +65,9 @@ function App() {
             GitHub
           </a>
         </p>
-      </footer>
-      <BottomNav />
+        </footer>
+        <BottomNav />
+      </AuthProvider>
     </BrowserRouter>
   )
 }
