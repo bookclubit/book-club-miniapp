@@ -6,6 +6,7 @@ import type {
   ClubSettings,
   ContentIndex,
   Flashcard,
+  IndexSpeaker,
   Topic,
   TopicRef,
 } from '../types'
@@ -98,6 +99,12 @@ export function speakerAvatar(name: string): string | undefined {
     (s) => s.name === name || s.aliases.includes(name),
   )
   return mediaUrl(speaker?.avatar)
+}
+
+// Спикеры клуба из реестра (профили: имя, аватар, био, соцсети). Ключ SWR: 'speakers'.
+export async function fetchSpeakers(): Promise<IndexSpeaker[]> {
+  const index = await fetchIndex()
+  return index.speakers
 }
 
 // Название книги по её id (или имени папки) из реестра — для карточек встреч.

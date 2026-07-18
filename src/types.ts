@@ -174,11 +174,23 @@ export interface IndexBook {
   chapters: string[] // slug-и папок глав
 }
 
+// Соцсети спикера (в его профиле). Порядок задаёт отрисовку иконок.
+export type SpeakerSocial = 'telegram' | 'github' | 'linkedin' | 'website'
+
+export const SPEAKER_SOCIALS: Array<{ id: SpeakerSocial; label: string }> = [
+  { id: 'telegram', label: 'Telegram' },
+  { id: 'github', label: 'GitHub' },
+  { id: 'linkedin', label: 'LinkedIn' },
+  { id: 'website', label: 'Сайт' },
+]
+
 export interface IndexSpeaker {
   id: string
   name: string
   aliases: string[]
   avatar: string
+  bio?: string // краткое описание о себе
+  socials?: Partial<Record<SpeakerSocial, string>>
 }
 
 export interface ContentIndex {
