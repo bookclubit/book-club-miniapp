@@ -6,7 +6,8 @@ import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
-import { bookTitleById, fetchEvents, fetchSpeakers, mediaUrl } from '../lib/api'
+import { bookTitleById, fetchClaims, fetchEvents, fetchSpeakers, mediaUrl } from '../lib/api'
+import type { TopicClaim } from '../lib/api'
 import { collectSpeakerTalks } from '../lib/speakers'
 import { SPEAKER_SOCIALS } from '../types'
 import type { ClubEvent, IndexSpeaker } from '../types'
@@ -16,6 +17,7 @@ function Speaker() {
   const { id = '' } = useParams()
   const speakers = useSWR<IndexSpeaker[]>('speakers', fetchSpeakers)
   const events = useSWR<ClubEvent[]>('events', fetchEvents)
+  const { data: claims } = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
   const [book, setBook] = useState<string>('all')
 
   if (speakers.isLoading || events.isLoading) {
@@ -38,7 +40,7 @@ function Speaker() {
     )
   }
 
-  const talks = collectSpeakerTalks(events.data ?? [], speaker.id)
+  const talks = collectSpeakerTalks(events.data ?? [], speaker, claims ?? [])
 
   // Книги, в которых спикер участвовал (для фильтра).
   const books: Array<{ id: string; title: string }> = []
@@ -126,11 +128,18 @@ function Speaker() {
                     <span className="text-xs font-semibold uppercase tracking-widest text-ink-faint">
                       {formatTalkDate(t.date)}
                     </span>
-                    {bookTitleById(t.bookId) ? (
-                      <span className="shrink-0 rounded-full bg-canvas px-2.5 py-0.5 text-xs text-ink-faint">
-                        {bookTitleById(t.bookId)}
-                      </span>
-                    ) : null}
+                    <div className="flex shrink-0 items-center gap-2">
+                      {t.pending ? (
+                        <span className="rounded-full bg-canvas px-2.5 py-0.5 text-xs text-ink-faint">
+                          заявка
+                        </span>
+                      ) : null}
+                      {bookTitleById(t.bookId) ? (
+                        <span className="rounded-full bg-canvas px-2.5 py-0.5 text-xs text-ink-faint">
+                          {bookTitleById(t.bookId)}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                   <h3 className="font-display mt-2 text-lg font-semibold leading-snug text-ink">
                     {t.talkTitle}

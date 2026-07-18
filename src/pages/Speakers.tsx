@@ -3,7 +3,8 @@ import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import Loading from '../components/Loading'
 import SpeakerCard from '../components/SpeakerCard'
-import { fetchEvents, fetchSpeakers } from '../lib/api'
+import { fetchClaims, fetchEvents, fetchSpeakers } from '../lib/api'
+import type { TopicClaim } from '../lib/api'
 import { collectSpeakerTalks } from '../lib/speakers'
 import type { ClubEvent, IndexSpeaker } from '../types'
 
@@ -11,10 +12,11 @@ import type { ClubEvent, IndexSpeaker } from '../types'
 function Speakers() {
   const speakers = useSWR<IndexSpeaker[]>('speakers', fetchSpeakers)
   const events = useSWR<ClubEvent[]>('events', fetchEvents)
+  const { data: claims } = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
 
   const counts = new Map<string, number>()
   for (const s of speakers.data ?? []) {
-    counts.set(s.id, collectSpeakerTalks(events.data ?? [], s.id).length)
+    counts.set(s.id, collectSpeakerTalks(events.data ?? [], s, claims ?? []).length)
   }
 
   // Сначала активные докладчики (больше докладов), затем по алфавиту.
