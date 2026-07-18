@@ -1,4 +1,4 @@
-import { bookTitleById, eventJoinUrl, mediaUrl } from '../lib/api'
+import { bookTitleById, mediaUrl } from '../lib/api'
 import { formatEventDate, formatWeekday, isPast } from '../lib/format'
 import ClubAvatar from './ClubAvatar'
 import Icon from './Icon'
@@ -163,17 +163,6 @@ function EventCard({ event, topicSlots }: EventCardProps) {
       ) : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        {!done ? (
-          <a
-            href={eventJoinUrl(event.id)}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-primary px-4 py-2 text-xs"
-          >
-            <Icon name="check" size={14} />
-            Пойду
-          </a>
-        ) : null}
         {!done && event.call_url ? (
           <a
             href={event.call_url}

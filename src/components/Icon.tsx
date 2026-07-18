@@ -18,6 +18,7 @@ export type IconName =
   | 'send'
   | 'home'
   | 'users'
+  | 'mic'
 
 const PATHS: Record<IconName, React.ReactNode> = {
   'arrow-left': <path d="M15.5 19 8 12l7.5-7" />,
@@ -91,6 +92,12 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <path d="M21 3.5 3 10.8l6.2 2.5L11.7 20z" />
       <path d="M21 3.5 9.2 13.3" />
+    </>
+  ),
+  mic: (
+    <>
+      <rect x="9" y="2.5" width="6" height="11" rx="3" />
+      <path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" />
     </>
   ),
 }

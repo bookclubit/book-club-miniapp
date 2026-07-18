@@ -7,7 +7,7 @@ import EventCard from '../components/EventCard'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import SocialLinks from '../components/SocialLinks'
-import { fetchBooks, fetchEvents } from '../lib/api'
+import { fetchBooks, fetchEvents, speakerUrl } from '../lib/api'
 import type { BookWithFolder } from '../lib/api'
 import type { ClubEvent } from '../types'
 
@@ -71,7 +71,31 @@ function Home() {
         </div>
       </section>
 
-      <section className="reveal mt-14" style={{ '--reveal-delay': '220ms' } as React.CSSProperties}>
+      <section className="reveal mt-14" style={{ '--reveal-delay': '200ms' } as React.CSSProperties}>
+        <div className="card flex flex-col items-start gap-5 border-transparent bg-accent-soft sm:flex-row sm:items-center sm:justify-between">
+          <div className="max-w-xl">
+            <div className="flex items-center gap-2 text-accent">
+              <Icon name="mic" size={20} />
+              <h2 className="font-display text-2xl font-semibold text-ink">Стать спикером</h2>
+            </div>
+            <p className="mt-2 text-ink-soft">
+              Возьми тему из плана главы, разбери её на встрече — а презентацию клуб
+              соберёт за тебя из шаблона. Заявку одобрит админ.
+            </p>
+          </div>
+          <a
+            href={speakerUrl()}
+            target="_blank"
+            rel="noreferrer"
+            className="btn-primary shrink-0 px-5 py-2.5 text-sm"
+          >
+            <Icon name="mic" size={16} />
+            Хочу выступить
+          </a>
+        </div>
+      </section>
+
+      <section className="reveal mt-14" style={{ '--reveal-delay': '280ms' } as React.CSSProperties}>
         <div className="flex items-baseline justify-between">
           <h2 className="font-display text-2xl font-semibold text-ink">Сейчас читаем</h2>
           <Link to="/books" className="link-back group text-sm">

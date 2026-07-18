@@ -49,12 +49,6 @@ export function speakerUrl(): string {
   return `${BOT_URL}?start=speaker`
 }
 
-// Запись на встречу: бот сохранит регистрацию, сразу пришлёт ссылки
-// (созвон, доска, материалы) и напомнит утром, за час и в начале.
-export function eventJoinUrl(eventId: string): string {
-  return `${BOT_URL}?start=join_${eventId}`
-}
-
 // --- Занятость тем (оперативные данные из D1 бота, не из git) ---
 
 export const BOT_API = 'https://book-club-bot.vitrumbeta.workers.dev'
