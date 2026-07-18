@@ -3,6 +3,7 @@ import type {
   Chapter,
   ChapterWithSlug,
   ClubEvent,
+  ClubSettings,
   ContentIndex,
   Flashcard,
   Topic,
@@ -25,6 +26,16 @@ export async function fetchIndex(): Promise<ContentIndex> {
     contentIndex = await fetcher<ContentIndex>(`${RAW_BASE}/index.json`)
   }
   return contentIndex
+}
+
+// Настройки клуба (ссылки на соцсети и т.п.). Файла может ещё не быть —
+// тогда возвращаем пустые настройки, блок соцсетей просто не отрисуется.
+export async function fetchSettings(): Promise<ClubSettings> {
+  try {
+    return await fetcher<ClubSettings>(`${RAW_BASE}/settings.json`)
+  } catch {
+    return { version: 1, socials: {} }
+  }
 }
 
 // Телеграм-бот клуба (book-club-bot, @bookclubfrontbot). Через него —

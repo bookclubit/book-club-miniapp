@@ -179,3 +179,23 @@ export interface ContentIndex {
   events: string[] // пути относительно events/
   speakers: IndexSpeaker[]
 }
+
+// --- Настройки клуба (settings.json в корне book-club-data) ---
+// Общие параметры, не привязанные к контенту: ссылки на соцсети клуба.
+// Ведёт CMS (страница «Настройки»), miniapp читает при старте.
+
+export type SocialPlatform = 'telegram' | 'youtube' | 'vk' | 'boosty' | 'github'
+
+// Фиксированный набор и порядок соцсетей клуба (иконки в едином стиле).
+export const SOCIAL_PLATFORMS: Array<{ id: SocialPlatform; label: string }> = [
+  { id: 'telegram', label: 'Telegram' },
+  { id: 'youtube', label: 'YouTube' },
+  { id: 'vk', label: 'VK' },
+  { id: 'boosty', label: 'Boosty' },
+  { id: 'github', label: 'GitHub' },
+]
+
+export interface ClubSettings {
+  version: 1
+  socials: Partial<Record<SocialPlatform, string>> // платформа → URL (пусто = скрыта)
+}
