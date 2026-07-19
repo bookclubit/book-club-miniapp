@@ -9,6 +9,7 @@ export interface TopicSlot {
   id: string
   title: string
   speaker?: { name: string; avatar?: string; pending?: boolean }
+  slidesUrl?: string
 }
 
 interface EventCardProps {
@@ -89,7 +90,7 @@ function EventCard({ event, topicSlots }: EventCardProps) {
         </div>
       ) : null}
 
-      {/* Доклады: слоты тем главы (в плане) либо список подтверждённых докладов. */}
+      {/* Доклады: слоты тем главы. Занятость — из заявок D1 (единый источник). */}
       {event.type === 'live-talk' && topicSlots && topicSlots.length > 0 ? (
         <ul className="mt-4 space-y-2.5">
           {topicSlots.map((slot) => (
@@ -115,7 +116,7 @@ function EventCard({ event, topicSlots }: EventCardProps) {
               ) : (
                 <ClubAvatar size={32} />
               )}
-              <div className="min-w-0">
+              <div className="min-w-0 grow">
                 <p className="truncate text-sm font-medium text-ink">{slot.title}</p>
                 <p className="text-xs text-ink-faint">
                   {slot.speaker
@@ -123,37 +124,9 @@ function EventCard({ event, topicSlots }: EventCardProps) {
                     : 'свободная тема'}
                 </p>
               </div>
-            </li>
-          ))}
-        </ul>
-      ) : event.type === 'live-talk' && event.talks.length > 0 ? (
-        <ul className="mt-4 space-y-2.5">
-          {event.talks.map((talk) => (
-            <li key={talk.speaker_id + talk.title} className="flex items-center gap-3">
-              {talk.avatar ? (
-                <img
-                  src={mediaUrl(talk.avatar)}
-                  alt=""
-                  width={32}
-                  height={32}
-                  loading="lazy"
-                  className="h-8 w-8 shrink-0 rounded-full object-cover"
-                />
-              ) : (
-                <span
-                  aria-hidden="true"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-canvas text-xs font-semibold text-ink-faint"
-                >
-                  {talk.speaker.slice(0, 1)}
-                </span>
-              )}
-              <div className="min-w-0 grow">
-                <p className="truncate text-sm font-medium text-ink">{talk.title}</p>
-                <p className="text-xs text-ink-faint">{talk.speaker}</p>
-              </div>
-              {talk.slides_url ? (
+              {slot.slidesUrl ? (
                 <a
-                  href={talk.slides_url}
+                  href={slot.slidesUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="btn-ghost shrink-0 px-3 py-1.5 text-xs"

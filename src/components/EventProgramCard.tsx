@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import { fetchEventChapterTopics, mediaUrl, speakerAvatar } from '../lib/api'
+import { fetchEventChapterTopics, speakerAvatar } from '../lib/api'
 import type { TopicClaim } from '../lib/api'
 import type { ClubEvent, TopicRef } from '../types'
 import EventCard from './EventCard'
@@ -18,31 +18,35 @@ export function EventProgramCard({
   claims: TopicClaim[]
   showSlots: boolean
 }) {
-  const withTopics =
-    showSlots && event.type === 'live-talk' && Boolean(event.book_id && event.chapter)
+  // Для «докладов» темы главы — слоты (и в плане, и в архиве). Единый источник
+  // занятости — заявки D1 (event.talks больше не используется).
+  const isLiveTalk = event.type === 'live-talk' && Boolean(event.book_id && event.chapter)
 
   const { data: topics } = useSWR<TopicRef[]>(
-    withTopics ? `plan-topics:${event.book_id}:${event.chapter}` : null,
+    isLiveTalk ? `plan-topics:${event.book_id}:${event.chapter}` : null,
     () => fetchEventChapterTopics(event.book_id!, event.chapter!),
   )
 
-  const talks = event.type === 'live-talk' ? event.talks : []
   const slots: TopicSlot[] | undefined = topics?.map((topic) => {
     const claim = claims.find((c) => c.topic_id === topic.id)
-    const talk = talks.find((t) => t.topic_id === topic.id || t.title === topic.title)
-    const speaker = claim
-      ? {
-          name: claim.speaker,
-          avatar: speakerAvatar(claim.speaker),
-          pending: claim.status !== 'confirmed',
-        }
-      : talk
-        ? { name: talk.speaker, avatar: mediaUrl(talk.avatar) ?? speakerAvatar(talk.speaker) }
-        : undefined
-    return { id: topic.id, title: topic.title, speaker }
+    return {
+      id: topic.id,
+      title: topic.title,
+      speaker: claim
+        ? {
+            name: claim.speaker,
+            avatar: speakerAvatar(claim.speaker),
+            pending: claim.status !== 'confirmed',
+          }
+        : undefined,
+      slidesUrl: claim?.slides_url ?? undefined,
+    }
   })
 
-  return <EventCard event={event} topicSlots={slots} />
+  // В плане показываем все темы (свободные тоже), в архиве — только занятые.
+  const visibleSlots = slots && !showSlots ? slots.filter((s) => s.speaker) : slots
+
+  return <EventCard event={event} topicSlots={visibleSlots} />
 }
 
 export default EventProgramCard

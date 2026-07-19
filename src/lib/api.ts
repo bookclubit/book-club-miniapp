@@ -61,6 +61,7 @@ export interface TopicClaim {
   status: 'pending' | 'confirmed'
   speaker: string
   speaker_id: string | null // каталожный спикер, если бот узнал заявителя
+  slides_url: string | null // ссылка на презентацию (talks)
 }
 
 export async function fetchClaims(): Promise<TopicClaim[]> {
