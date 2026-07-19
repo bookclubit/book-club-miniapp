@@ -22,8 +22,7 @@ interface EventCardProps {
 function EventCard({ event, topicSlots }: EventCardProps) {
   const done = event.finished || isPast(event.date)
   const kind = event.type === 'closed-chapter' ? 'Открытое обсуждение' : 'Доклады'
-  const streamName =
-    event.type === 'live-talk' && event.stream ? `Книжный клуб ${event.stream}` : null
+  const streamName = event.stream ? `Книжный клуб ${event.stream}` : null
   const bookTitle = bookTitleById(event.book_id)
   const moderators = event.type === 'closed-chapter' ? (event.moderators ?? []) : []
 

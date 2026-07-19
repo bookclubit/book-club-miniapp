@@ -100,6 +100,8 @@ export interface ClosedChapterEvent {
   notes_board_url?: string // доска — ссылка или загруженный файл (raw URL)
   call_url?: string // Google Meet — подключиться к обсуждению
   streams?: { youtube?: string; vk?: string }
+  /** Номер стрима: показывается как «Книжный клуб <stream>». */
+  stream?: number
   moderators?: EventModerator[]
   materials?: EventMaterial[]
   finished?: boolean // админ отметил встречу завершённой → уходит в архив
