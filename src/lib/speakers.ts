@@ -1,4 +1,5 @@
 import type { TopicClaim } from './api'
+import { isPast } from './format'
 import type { ClubEvent, IndexSpeaker, LiveTalkEvent } from '../types'
 
 // Доклад спикера с контекстом встречи — для профиля спикера.
@@ -40,6 +41,9 @@ export function collectSpeakerTalks(
       live.find((ev) => ev.book_id === c.book_id && ev.chapter === c.chapter) ??
       live.find((ev) => ev.book_id === c.book_id)
     if (!e) continue
+    // Доклад показываем только после того, как встреча прошла (завершена
+    // админом или дата уже позади) — будущие/текущие в профиль не попадают.
+    if (!e.finished && !isPast(e.date)) continue
     const key = `${e.id}:${c.topic_id ?? c.topic_title}`
     if (seen.has(key)) continue
     seen.add(key)
