@@ -128,6 +128,8 @@ export interface LiveTalkEvent {
   /** Книга и глава программы эфира — из них бот предлагает темы спикерам. */
   book_id?: string
   chapter?: string
+  /** Номер стрима: показывается как «Книжный клуб <stream>». */
+  stream?: number
   finished?: boolean // админ отметил встречу завершённой → уходит в архив
 }
 
