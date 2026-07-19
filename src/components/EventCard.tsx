@@ -1,5 +1,5 @@
 import { bookTitleById, mediaUrl } from '../lib/api'
-import { formatEventDate, formatWeekday, isPast } from '../lib/format'
+import { formatEventDate, formatWeekday, hasStarted, isPast } from '../lib/format'
 import ClubAvatar from './ClubAvatar'
 import Icon from './Icon'
 import type { ClubEvent } from '../types'
@@ -22,6 +22,8 @@ interface EventCardProps {
 // У будущих — «Пойду» и ссылки; у прошедших/завершённых — записи трансляций.
 function EventCard({ event, topicSlots }: EventCardProps) {
   const done = event.finished || isPast(event.date)
+  // Слайды открываем только с момента начала встречи (не раньше).
+  const slidesVisible = hasStarted(event.date, event.time)
   const kind = event.type === 'closed-chapter' ? 'Открытое обсуждение' : 'Доклады'
   const streamName = event.stream ? `Книжный клуб ${event.stream}` : null
   const bookTitle = bookTitleById(event.book_id)
@@ -124,7 +126,7 @@ function EventCard({ event, topicSlots }: EventCardProps) {
                     : 'свободная тема'}
                 </p>
               </div>
-              {slot.slidesUrl ? (
+              {slot.slidesUrl && slidesVisible ? (
                 <a
                   href={slot.slidesUrl}
                   target="_blank"

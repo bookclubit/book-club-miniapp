@@ -28,3 +28,12 @@ export function isPast(date: string): boolean {
   const iso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   return date < iso
 }
+
+// Встреча уже началась? Дата+время трактуются как МСК (UTC+3) — сравнение
+// абсолютных моментов, поэтому корректно в любом часовом поясе зрителя.
+export function hasStarted(date: string, time?: string): boolean {
+  const t = time && /^\d{1,2}:\d{2}$/.test(time) ? time.padStart(5, '0') : '00:00'
+  const start = new Date(`${date}T${t}:00+03:00`)
+  if (Number.isNaN(start.getTime())) return isPast(date)
+  return Date.now() >= start.getTime()
+}
