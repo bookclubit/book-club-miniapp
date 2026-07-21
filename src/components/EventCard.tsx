@@ -59,7 +59,11 @@ function EventCard({ event, topicSlots }: EventCardProps) {
       ) : null}
 
       <p className="mt-1.5 text-sm text-ink-soft">
-        {formatEventDate(event.date)}, {formatWeekday(event.date)} · {event.time}
+        {/* Прошедшие: дата с годом (без дня недели). Будущие: с днём недели. */}
+        {done
+          ? `${formatEventDate(event.date)} ${new Date(`${event.date}T00:00:00`).getFullYear()}`
+          : `${formatEventDate(event.date)}, ${formatWeekday(event.date)}`}
+        {` · ${event.time}`}
         {event.type === 'closed-chapter' && event.pages
           ? ` · стр. ${event.pages.from}–${event.pages.to}`
           : ''}
