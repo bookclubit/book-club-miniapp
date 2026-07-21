@@ -4,6 +4,7 @@ import ErrorState from '../components/ErrorState'
 import EmptyState from '../components/EmptyState'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
+import LearningOutcome from '../components/LearningOutcome'
 import TopicSection from '../components/TopicSection'
 import { chapterUrl, fetchTopics, fetcher } from '../lib/api'
 import type { Chapter as ChapterData, Topic } from '../types'
@@ -45,14 +46,7 @@ function Chapter() {
             </h1>
             <p className="mt-4 leading-relaxed text-ink-soft">{chapter.data.description}</p>
 
-            <div className="mt-5 rounded-card bg-accent-soft px-5 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-accent-strong">
-                Чему научишься
-              </p>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink">
-                {chapter.data.learning_outcome}
-              </p>
-            </div>
+            <LearningOutcome text={chapter.data.learning_outcome} />
 
             <Link to={`/study/${bookId}`} className="btn-primary mt-6">
               <Icon name="cards" size={16} />
