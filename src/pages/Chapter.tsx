@@ -5,9 +5,10 @@ import EmptyState from '../components/EmptyState'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import LearningOutcome from '../components/LearningOutcome'
+import AddChapterToDeck from '../components/AddChapterToDeck'
 import TopicSection from '../components/TopicSection'
-import { chapterUrl, fetchTopics, fetcher } from '../lib/api'
-import type { Chapter as ChapterData, Topic } from '../types'
+import { chapterUrl, fetchFlashcards, fetchTopics, fetcher } from '../lib/api'
+import type { Chapter as ChapterData, Flashcard, Topic } from '../types'
 
 // Страница главы: описание, ожидаемый результат и темы (Markdown-материалы).
 function Chapter() {
@@ -21,8 +22,17 @@ function Chapter() {
     chapter.data ? `topics:${bookId}:${chapterId}` : null,
     () => fetchTopics(bookId as string, chapterId as string, chapter.data as ChapterData),
   )
+  const cards = useSWR<Flashcard[]>(
+    bookId ? `flashcards:${bookId}` : null,
+    () => fetchFlashcards(bookId as string),
+  )
 
   if (!bookId || !chapterId) return <ErrorState message="Не указана глава." />
+
+  // Карточки именно этой главы (в карточках chapter = номер главы строкой).
+  const chapterCardCount = chapter.data
+    ? (cards.data ?? []).filter((c) => String(c.chapter) === String(chapter.data!.order)).length
+    : 0
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
@@ -48,10 +58,13 @@ function Chapter() {
 
             <LearningOutcome text={chapter.data.learning_outcome} />
 
-            <Link to={`/study/${bookId}`} className="btn-primary mt-6">
-              <Icon name="cards" size={16} />
-              Учить карточки
-            </Link>
+            {chapterCardCount > 0 ? (
+              <AddChapterToDeck
+                bookId={bookId}
+                order={chapter.data.order}
+                count={chapterCardCount}
+              />
+            ) : null}
           </header>
 
           <div className="mt-12">

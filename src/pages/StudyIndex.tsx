@@ -6,6 +6,7 @@ import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import { fetchBooks, fetchFlashcards, mediaUrl } from '../lib/api'
 import type { BookWithFolder } from '../lib/api'
+import { bookCardScope, cardsInScope } from '../lib/deck'
 import { plural } from '../lib/format'
 import { isDue, loadProgress } from '../lib/storage'
 import type { Flashcard } from '../types'
@@ -18,20 +19,22 @@ interface StudyBook {
   due: number
 }
 
-// Собирает книги, у которых есть карточки, с числом карточек «к повторению сегодня».
+// Собирает книги ИЗ КОЛОДЫ пользователя (подписанные целиком или по главам)
+// с числом добавленных карточек и сколько из них «к повторению сегодня».
 async function fetchStudyBooks(): Promise<StudyBook[]> {
   const books = await fetchBooks()
   const withCards = await Promise.all(
     books.map(async ({ folder, meta }: BookWithFolder): Promise<StudyBook | null> => {
       const cards: Flashcard[] = await fetchFlashcards(folder)
-      if (cards.length === 0) return null
+      const deckCards = cardsInScope(cards, bookCardScope(folder))
+      if (deckCards.length === 0) return null // книга не в колоде — не показываем
       const progress = loadProgress(folder)
       return {
         folder,
         title: meta.title,
         cover: meta.cover,
-        total: cards.length,
-        due: cards.filter((card) => isDue(progress[card.id])).length,
+        total: deckCards.length,
+        due: deckCards.filter((card) => isDue(progress[card.id])).length,
       }
     }),
   )
@@ -59,8 +62,8 @@ function StudyIndex() {
           <ErrorState message={(error as Error).message} />
         ) : !data || data.length === 0 ? (
           <EmptyState
-            title="Карточек пока нет"
-            hint="Они появятся после разбора первых глав."
+            title="Колода пуста"
+            hint="Добавь карточки на странице книги («Добавить в колоду») или главы — они появятся здесь."
           />
         ) : (
           <div className="space-y-3">

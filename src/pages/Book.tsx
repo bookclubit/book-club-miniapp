@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
 import useSWR from 'swr'
+import AddBookToDeck from '../components/AddBookToDeck'
 import ChapterCard from '../components/ChapterCard'
 import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
@@ -121,15 +122,7 @@ function Book() {
                   </div>
                 </div>
 
-                {cardCount > 0 ? (
-                  <Link to={`/study/${bookId}`} className="btn-primary mt-5">
-                    <Icon name="cards" size={16} />
-                    Учить карточки
-                    <span className="rounded-full bg-black/15 px-2 py-0.5 text-xs">
-                      {cardCount}
-                    </span>
-                  </Link>
-                ) : null}
+                {cardCount > 0 ? <AddBookToDeck bookId={bookId} count={cardCount} /> : null}
               </div>
             </header>
           ) : null}

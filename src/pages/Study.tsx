@@ -7,6 +7,7 @@ import FlashCard from '../components/FlashCard'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import { fetchFlashcards } from '../lib/api'
+import { bookCardScope, cardsInScope } from '../lib/deck'
 import { plural } from '../lib/format'
 import {
   defaultCardProgress,
@@ -57,12 +58,16 @@ function Study() {
   const [reviewed, setReviewed] = useState(0)
   const [ready, setReady] = useState(false)
 
+  // Изучаем только карточки, добавленные в колоду (вся книга или отдельные главы).
+  const deckCards = bookId && data ? cardsInScope(data, bookCardScope(bookId)) : []
+
   // Инициализация сессии: грузим прогресс и собираем очередь карточек «на сегодня».
   useEffect(() => {
     if (!bookId || !data || ready) return
     const saved = loadProgress(bookId)
+    const scoped = cardsInScope(data, bookCardScope(bookId))
     setProgress(saved)
-    setQueue(data.filter((card) => isDue(saved[card.id])).map((card) => card.id))
+    setQueue(scoped.filter((card) => isDue(saved[card.id])).map((card) => card.id))
     setReady(true)
   }, [bookId, data, ready])
 
@@ -81,19 +86,26 @@ function Study() {
       </div>
     )
   }
-  if (!data || data.length === 0) {
+  if (deckCards.length === 0) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
         <BackLink />
         <div className="mt-6">
-          <EmptyState title="Карточек пока нет" hint="Они появятся после разбора глав." />
+          {!data || data.length === 0 ? (
+            <EmptyState title="Карточек пока нет" hint="Они появятся после разбора глав." />
+          ) : (
+            <EmptyState
+              title="Этих карточек нет в твоей колоде"
+              hint="Добавь их на странице книги или главы — и они появятся здесь."
+            />
+          )}
         </div>
       </div>
     )
   }
 
   const currentId = queue[0]
-  const currentCard = data.find((card) => card.id === currentId)
+  const currentCard = deckCards.find((card) => card.id === currentId)
   const total = reviewed + queue.length
   const percent = total === 0 ? 100 : Math.round((reviewed / total) * 100)
 
@@ -116,7 +128,7 @@ function Study() {
     if (!bookId || !data) return
     resetProgress(bookId)
     setProgress({})
-    setQueue(data.map((card) => card.id))
+    setQueue(deckCards.map((card) => card.id))
     setReviewed(0)
     setFlipped(false)
   }
