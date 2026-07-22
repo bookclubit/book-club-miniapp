@@ -19,6 +19,7 @@ function Speaker() {
   const events = useSWR<ClubEvent[]>('events', fetchEvents)
   const { data: claims } = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
   const [book, setBook] = useState<string>('all')
+  const [year, setYear] = useState<string>('all')
 
   if (speakers.isLoading || events.isLoading) {
     return <Centered><Loading label="Загружаем профиль…" /></Centered>
@@ -50,7 +51,16 @@ function Speaker() {
     }
   }
 
-  const visible = book === 'all' ? talks : talks.filter((t) => t.bookId === book)
+  // Годы докладов (для фильтра) — от новых к старым.
+  const years = [...new Set(talks.map((t) => t.date.slice(0, 4)))].sort((a, b) =>
+    b.localeCompare(a),
+  )
+
+  const visible = talks.filter(
+    (t) =>
+      (book === 'all' || t.bookId === book) &&
+      (year === 'all' || t.date.slice(0, 4) === year),
+  )
 
   const socials = SPEAKER_SOCIALS.map((s) => ({
     ...s,
@@ -108,6 +118,19 @@ function Speaker() {
             {books.map((b) => (
               <FilterChip key={b.id} active={book === b.id} onClick={() => setBook(b.id)}>
                 {b.title}
+              </FilterChip>
+            ))}
+          </div>
+        ) : null}
+
+        {years.length > 1 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <FilterChip active={year === 'all'} onClick={() => setYear('all')}>
+              Все годы
+            </FilterChip>
+            {years.map((y) => (
+              <FilterChip key={y} active={year === y} onClick={() => setYear(y)}>
+                {y}
               </FilterChip>
             ))}
           </div>

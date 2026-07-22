@@ -24,8 +24,28 @@ function claimMatchesSpeaker(claim: TopicClaim, speaker: IndexSpeaker): boolean 
   return claim.speaker === speaker.name || speaker.aliases.includes(claim.speaker)
 }
 
+// Встреча заявки: если главу делят на несколько эфиров, тема явно приписана к
+// одному из них (topic_ids). Иначе — единственная встреча по книге+главе.
+function findEventForClaim(
+  live: LiveTalkEvent[],
+  c: TopicClaim,
+): LiveTalkEvent | undefined {
+  if (c.topic_id) {
+    const byTopic = live.find(
+      (ev) => ev.book_id === c.book_id && ev.topic_ids?.includes(c.topic_id!),
+    )
+    if (byTopic) return byTopic
+  }
+  return (
+    live.find((ev) => ev.book_id === c.book_id && ev.chapter === c.chapter) ??
+    live.find((ev) => ev.book_id === c.book_id)
+  )
+}
+
 // Все доклады спикера — из заявок D1 (единый источник занятости), от новых к
-// старым. Заявка привязана к встрече по книге+главе; слайды берём из заявки.
+// старым. Заявка привязана к встрече по темам/книге+главе. Слайды берём из
+// заявки; ссылки на видео — монтажный ролик доклада (event.recordings по теме),
+// а не запись всей встречи.
 export function collectSpeakerTalks(
   events: ClubEvent[],
   speaker: IndexSpeaker,
@@ -37,9 +57,7 @@ export function collectSpeakerTalks(
 
   for (const c of claims) {
     if (!claimMatchesSpeaker(c, speaker)) continue
-    const e =
-      live.find((ev) => ev.book_id === c.book_id && ev.chapter === c.chapter) ??
-      live.find((ev) => ev.book_id === c.book_id)
+    const e = findEventForClaim(live, c)
     if (!e) continue
     // Доклад показываем только после того, как встреча прошла (завершена
     // админом или дата уже позади) — будущие/текущие в профиль не попадают.
@@ -47,6 +65,8 @@ export function collectSpeakerTalks(
     const key = `${e.id}:${c.topic_id ?? c.topic_title}`
     if (seen.has(key)) continue
     seen.add(key)
+    // Монтажный ролик именно этого доклада (вносит админ), не запись встречи.
+    const recording = c.topic_id ? e.recordings?.[c.topic_id] : undefined
     talks.push({
       eventId: e.id,
       eventTitle: e.title,
@@ -54,8 +74,8 @@ export function collectSpeakerTalks(
       bookId: e.book_id,
       talkTitle: c.topic_title,
       slidesUrl: c.slides_url ?? undefined,
-      youtube: e.streams?.youtube,
-      vk: e.streams?.vk,
+      youtube: recording?.youtube,
+      vk: recording?.vk,
       finished: Boolean(e.finished),
       pending: c.status !== 'confirmed',
     })

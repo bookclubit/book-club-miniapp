@@ -27,7 +27,16 @@ export function EventProgramCard({
     () => fetchEventChapterTopics(event.book_id!, event.chapter!),
   )
 
-  const slots: TopicSlot[] | undefined = topics?.map((topic) => {
+  // Если главу делят на несколько встреч, у встречи задан свой набор тем
+  // (topic_ids) — показываем только их. Нет набора → вся глава (одна встреча).
+  const eventTopicIds =
+    event.type === 'live-talk' ? event.topic_ids : undefined
+  const chapterTopics =
+    eventTopicIds && eventTopicIds.length > 0
+      ? topics?.filter((t) => eventTopicIds.includes(t.id))
+      : topics
+
+  const slots: TopicSlot[] | undefined = chapterTopics?.map((topic) => {
     const claim = claims.find((c) => c.topic_id === topic.id)
     return {
       id: topic.id,

@@ -116,6 +116,9 @@ export interface LiveTalk {
   slides_url?: string // ссылка на презентацию (talks, Cloudflare Pages)
 }
 
+/** Монтажные ролики докладов встречи: id темы → ссылки на чистовую запись. */
+export type EventRecordings = Record<string, { youtube?: string; vk?: string }>
+
 export interface LiveTalkEvent {
   id: string
   type: 'live-talk'
@@ -130,6 +133,14 @@ export interface LiveTalkEvent {
   /** Книга и глава программы эфира — из них бот предлагает темы спикерам. */
   book_id?: string
   chapter?: string
+  /**
+   * Темы главы, разбираемые именно на этой встрече (id тем). Нужно, когда главу
+   * делят на несколько эфиров: каждый показывает только свои темы. Пусто/нет —
+   * вся глава (обратная совместимость: одна встреча на главу).
+   */
+  topic_ids?: string[]
+  /** Монтажные ролики докладов (id темы → ссылки); вносит админ после встречи. */
+  recordings?: EventRecordings
   /** Номер стрима: показывается как «Книжный клуб <stream>». */
   stream?: number
   finished?: boolean // админ отметил встречу завершённой → уходит в архив
