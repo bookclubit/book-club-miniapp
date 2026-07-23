@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import useSWR from 'swr'
 import BrandIcon from '../components/BrandIcon'
 import ErrorState from '../components/ErrorState'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
+import Pill from '../components/Pill'
 import TelegramLoginButton from '../components/TelegramLoginButton'
 import { fetchBooks, fetchFlashcards } from '../lib/api'
 import {
@@ -185,31 +186,26 @@ function Stat({ label, value, accent }: { label: string; value: number; accent?:
 // --- Настройки ---
 
 function SettingsCard() {
-  const [daily, setDaily] = useState<number | null>(null)
-  const [options, setOptions] = useState<number[]>([])
+  // Ключ 'user-settings': ключ 'settings' занят настройками клуба (SocialLinks).
+  const { data, error: loadError, isLoading, mutate } = useSWR('user-settings', fetchUserSettings)
   const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetchUserSettings()
-      .then((s) => {
-        setDaily(s.daily_cards)
-        setOptions(s.options)
-      })
-      .catch(() => setError('Не удалось загрузить настройки'))
-  }, [])
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   async function choose(n: number) {
-    if (n === daily || saving) return
+    if (!data || n === data.daily_cards || saving) return
     setSaving(true)
-    setError(null)
-    const prev = daily
-    setDaily(n)
+    setSaveError(null)
     try {
-      await saveUserSettings(n)
+      // Оптимистичное обновление с откатом при ошибке — через кэш SWR.
+      await mutate(
+        async () => {
+          const res = await saveUserSettings(n)
+          return { ...data, daily_cards: res.daily_cards }
+        },
+        { optimisticData: { ...data, daily_cards: n }, rollbackOnError: true, revalidate: false },
+      )
     } catch {
-      setDaily(prev)
-      setError('Не удалось сохранить')
+      setSaveError('Не удалось сохранить')
     } finally {
       setSaving(false)
     }
@@ -223,25 +219,25 @@ function SettingsCard() {
         <p className="mt-0.5 text-sm text-ink-faint">
           Сколько карточек присылает бот и берётся в сессию повторения.
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {options.map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => choose(n)}
-              aria-pressed={n === daily}
-              disabled={saving}
-              className={
-                n === daily
-                  ? 'rounded-full bg-accent px-4 py-1.5 text-sm font-medium text-on-accent'
-                  : 'rounded-full border border-line bg-surface px-4 py-1.5 text-sm font-medium text-ink-faint transition-colors duration-200 hover:text-ink'
-              }
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-        {error ? <p className="mt-3 text-sm text-danger">{error}</p> : null}
+        {isLoading ? (
+          <Loading label="Загружаем настройки…" />
+        ) : loadError ? (
+          <p className="mt-3 text-sm text-danger">Не удалось загрузить настройки</p>
+        ) : data ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {data.options.map((n) => (
+              <Pill
+                key={n}
+                active={n === data.daily_cards}
+                onClick={() => choose(n)}
+                disabled={saving}
+              >
+                {n}
+              </Pill>
+            ))}
+          </div>
+        ) : null}
+        {saveError ? <p className="mt-3 text-sm text-danger">{saveError}</p> : null}
       </div>
     </section>
   )

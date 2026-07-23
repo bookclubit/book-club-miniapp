@@ -15,7 +15,8 @@ import type { ClubEvent } from '../types'
 function Home() {
   const books = useSWR<BookWithFolder[]>('books', fetchBooks)
   const events = useSWR<ClubEvent[]>('events', fetchEvents)
-  const { data: claims } = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
+  // Ошибка заявок не роняет блок встреч: темы покажем свободными с подписью.
+  const claims = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
 
   const reading = books.data?.filter(({ meta }) => meta.status === 'reading') ?? []
 
@@ -67,7 +68,12 @@ function Home() {
                   className="reveal"
                   style={{ '--reveal-delay': `${150 + i * 90}ms` } as React.CSSProperties}
                 >
-                  <EventProgramCard event={event} claims={claims ?? []} showSlots />
+                  <EventProgramCard
+                    event={event}
+                    claims={claims.data ?? []}
+                    claimsUnavailable={Boolean(claims.error)}
+                    showSlots
+                  />
                 </div>
               ))}
             </div>

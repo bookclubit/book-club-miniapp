@@ -6,6 +6,13 @@ import ErrorState from '../components/ErrorState'
 import FlashCard from '../components/FlashCard'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
+import {
+  fetchServerProgress,
+  sendCardReview,
+  serverToCardProgress,
+  serverToStudyProgress,
+  type ServerCardProgress,
+} from '../lib/account'
 import { fetchFlashcards } from '../lib/api'
 import { bookCardScope, cardsInScope } from '../lib/deck'
 import { plural } from '../lib/format'
@@ -17,6 +24,7 @@ import {
   reviewCard,
   saveProgress,
 } from '../lib/storage'
+import { useAuth } from '../lib/useAuth'
 import type { Flashcard, ReviewGrade, StudyProgress } from '../types'
 
 // Кнопки оценки: семантические цвета, текст ≥ 4.5:1 на мягком фоне.
@@ -44,12 +52,21 @@ const GRADES: { grade: ReviewGrade; label: string; className: string }[] = [
 ]
 
 // Страница изучения: флип-карточки с интервальным повторением (SM-2).
+// При активной сессии источник истины — серверный прогресс (общий с ботом),
+// localStorage — кэш и фолбэк для гостей; оценки уходят и на сервер.
 function Study() {
   const { bookId } = useParams<{ bookId: string }>()
+  const { user, loading: authLoading } = useAuth()
 
   const { data, error, isLoading } = useSWR<Flashcard[]>(
     bookId ? `flashcards:${bookId}` : null,
     () => fetchFlashcards(bookId as string),
+  )
+
+  // Серверный прогресс — только при активной сессии (ключи «<book>:<cardId>»).
+  const server = useSWR<ServerCardProgress[]>(
+    user ? `server-progress:${user.id}` : null,
+    fetchServerProgress,
   )
 
   const [progress, setProgress] = useState<StudyProgress>({})
@@ -57,19 +74,34 @@ function Study() {
   const [flipped, setFlipped] = useState(false)
   const [reviewed, setReviewed] = useState(0)
   const [ready, setReady] = useState(false)
+  // Ненавязчивое сообщение о проблемах синхронизации с сервером.
+  const [syncNote, setSyncNote] = useState<string | null>(null)
 
   // Изучаем только карточки, добавленные в колоду (вся книга или отдельные главы).
   const deckCards = bookId && data ? cardsInScope(data, bookCardScope(bookId)) : []
 
   // Инициализация сессии: грузим прогресс и собираем очередь карточек «на сегодня».
+  // Вошедшим сначала дожидаемся серверного прогресса — он источник истины.
   useEffect(() => {
-    if (!bookId || !data || ready) return
-    const saved = loadProgress(bookId)
+    if (!bookId || !data || ready || authLoading) return
+    if (user && !server.data && !server.error) return // ждём сервер
+
+    let saved: StudyProgress
+    if (user && server.data) {
+      saved = serverToStudyProgress(server.data, bookId)
+      saveProgress(bookId, saved) // локальная копия — кэш
+    } else {
+      saved = loadProgress(bookId)
+      if (user && server.error) {
+        setSyncNote('Серверный прогресс недоступен — используем сохранённый на устройстве.')
+      }
+    }
+
     const scoped = cardsInScope(data, bookCardScope(bookId))
     setProgress(saved)
     setQueue(scoped.filter((card) => isDue(saved[card.id])).map((card) => card.id))
     setReady(true)
-  }, [bookId, data, ready])
+  }, [bookId, data, ready, authLoading, user, server.data, server.error])
 
   if (!bookId) return <ErrorState message="Не указана книга." />
   if (isLoading || (!ready && !error && data && data.length > 0)) {
@@ -117,6 +149,32 @@ function Study() {
     setProgress(updated)
     saveProgress(bookId, updated)
 
+    // При активной сессии — оценка уходит и на сервер (единый прогресс с ботом).
+    // Ошибка не блокирует занятие: локально прогресс уже сохранён.
+    if (user) {
+      const cardId = currentId
+      sendCardReview(bookId, cardId, grade)
+        .then((serverNext) => {
+          setSyncNote(null)
+          // Сервер — источник истины: применяем его расчёт SM-2 локально и в кэш SWR.
+          setProgress((p) => {
+            const merged = { ...p, [cardId]: serverToCardProgress(serverNext) }
+            saveProgress(bookId, merged)
+            return merged
+          })
+          void server.mutate(
+            (list) =>
+              list
+                ? [...list.filter((item) => item.cardId !== serverNext.cardId), serverNext]
+                : list,
+            { revalidate: false },
+          )
+        })
+        .catch(() => {
+          setSyncNote('Не удалось сохранить оценку на сервере — прогресс сохранён на устройстве.')
+        })
+    }
+
     // «Снова» — вернуть карточку в конец очереди этой сессии.
     const rest = queue.slice(1)
     setQueue(grade === 'again' ? [...rest, currentId] : rest)
@@ -148,6 +206,7 @@ function Study() {
               ? `Повторено ${reviewed} ${plural(reviewed, 'карточка', 'карточки', 'карточек')}. Интервалы назначены — возвращайся позже.`
               : 'Все карточки ждут своего срока. Возвращайся позже.'}
           </p>
+          <SyncNote note={syncNote} />
           <button type="button" onClick={handleReset} className="btn-ghost mt-6">
             <Icon name="refresh" size={15} />
             Сбросить прогресс
@@ -204,8 +263,19 @@ function Study() {
             Показать ответ
           </button>
         )}
+        <SyncNote note={syncNote} />
       </div>
     </div>
+  )
+}
+
+// Ненавязчивое сообщение о состоянии синхронизации с сервером.
+function SyncNote({ note }: { note: string | null }) {
+  if (!note) return null
+  return (
+    <p role="status" className="mt-3 text-center text-xs text-ink-faint">
+      {note}
+    </p>
   )
 }
 

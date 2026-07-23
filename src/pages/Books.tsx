@@ -4,6 +4,7 @@ import BookCard from '../components/BookCard'
 import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import Loading from '../components/Loading'
+import Pill from '../components/Pill'
 import { fetchBooks } from '../lib/api'
 import type { BookWithFolder } from '../lib/api'
 import { BOOK_CATEGORIES } from '../types'
@@ -27,13 +28,13 @@ function Books() {
 
       {books.length > 0 && (
         <div className="reveal mt-6 flex flex-wrap gap-2" style={{ '--reveal-delay': '60ms' } as React.CSSProperties}>
-          <FilterTab active={filter === 'all'} onClick={() => setFilter('all')}>
+          <Pill active={filter === 'all'} onClick={() => setFilter('all')}>
             Все книги
-          </FilterTab>
+          </Pill>
           {BOOK_CATEGORIES.filter((c) => countBy(c.id) > 0).map((c) => (
-            <FilterTab key={c.id} active={filter === c.id} onClick={() => setFilter(c.id)}>
+            <Pill key={c.id} active={filter === c.id} onClick={() => setFilter(c.id)}>
               {c.label}
-            </FilterTab>
+            </Pill>
           ))}
         </div>
       )}
@@ -62,31 +63,6 @@ function Books() {
         )}
       </div>
     </div>
-  )
-}
-
-function FilterTab({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={
-        active
-          ? 'rounded-full bg-accent px-3.5 py-1.5 text-sm font-medium text-on-accent'
-          : 'rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm font-medium text-ink-faint transition-colors duration-200 hover:text-ink'
-      }
-    >
-      {children}
-    </button>
   )
 }
 

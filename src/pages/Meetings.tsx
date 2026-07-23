@@ -5,6 +5,7 @@ import ErrorState from '../components/ErrorState'
 import EventProgramCard from '../components/EventProgramCard'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
+import Pill from '../components/Pill'
 import { bookTitleById, fetchClaims, fetchEvents, speakerUrl } from '../lib/api'
 import type { TopicClaim } from '../lib/api'
 import type { ClubEvent } from '../types'
@@ -15,7 +16,8 @@ type Tab = 'plan' | 'archive'
 // «доклады» видно слоты тем главы — занятые (спикер/заявка) и свободные.
 function Meetings() {
   const { data: events, error, isLoading } = useSWR<ClubEvent[]>('events', fetchEvents)
-  const { data: claims } = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
+  // Ошибка заявок не роняет страницу: темы покажем свободными с мелкой подписью.
+  const claims = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
   const [tab, setTab] = useState<Tab>('plan')
   const [book, setBook] = useState<string>('all')
 
@@ -66,12 +68,12 @@ function Meetings() {
         className="reveal mt-6 flex gap-2"
         style={{ '--reveal-delay': '60ms' } as React.CSSProperties}
       >
-        <TabButton active={tab === 'plan'} onClick={() => switchTab('plan')}>
+        <Pill active={tab === 'plan'} onClick={() => switchTab('plan')}>
           План
-        </TabButton>
-        <TabButton active={tab === 'archive'} onClick={() => switchTab('archive')}>
+        </Pill>
+        <Pill active={tab === 'archive'} onClick={() => switchTab('archive')}>
           Архив
-        </TabButton>
+        </Pill>
       </div>
 
       {books.length > 1 ? (
@@ -79,13 +81,13 @@ function Meetings() {
           className="reveal mt-4 flex flex-wrap gap-2"
           style={{ '--reveal-delay': '80ms' } as React.CSSProperties}
         >
-          <FilterChip active={book === 'all'} onClick={() => setBook('all')}>
+          <Pill size="sm" active={book === 'all'} onClick={() => setBook('all')}>
             Все книги
-          </FilterChip>
+          </Pill>
           {books.map((b) => (
-            <FilterChip key={b.id} active={book === b.id} onClick={() => setBook(b.id)}>
+            <Pill key={b.id} size="sm" active={book === b.id} onClick={() => setBook(b.id)}>
               {b.title}
-            </FilterChip>
+            </Pill>
           ))}
         </div>
       ) : null}
@@ -106,7 +108,8 @@ function Meetings() {
               <TimelineItem
                 key={event.id}
                 event={event}
-                claims={claims ?? []}
+                claims={claims.data ?? []}
+                claimsUnavailable={Boolean(claims.error)}
                 showSlots={tab === 'plan'}
                 delay={80 + i * 90}
               />
@@ -123,11 +126,13 @@ function Meetings() {
 function TimelineItem({
   event,
   claims,
+  claimsUnavailable,
   showSlots,
   delay,
 }: {
   event: ClubEvent
   claims: TopicClaim[]
+  claimsUnavailable?: boolean
   showSlots: boolean
   delay: number
 }) {
@@ -149,60 +154,14 @@ function TimelineItem({
       </div>
       <div className="relative min-w-0 grow border-l border-line pl-5">
         <span className="absolute -left-1.25 top-5 h-2.5 w-2.5 rounded-full border-2 border-accent bg-canvas" />
-        <EventProgramCard event={event} claims={claims} showSlots={showSlots} />
+        <EventProgramCard
+          event={event}
+          claims={claims}
+          claimsUnavailable={claimsUnavailable}
+          showSlots={showSlots}
+        />
       </div>
     </div>
-  )
-}
-
-
-function TabButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={
-        active
-          ? 'rounded-full bg-accent px-4 py-1.5 text-sm font-medium text-on-accent'
-          : 'rounded-full border border-line bg-surface px-4 py-1.5 text-sm font-medium text-ink-faint transition-colors duration-200 hover:text-ink'
-      }
-    >
-      {children}
-    </button>
-  )
-}
-
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={
-        active
-          ? 'rounded-full bg-ink px-3 py-1 text-xs font-medium text-canvas'
-          : 'rounded-full border border-line bg-surface px-3 py-1 text-xs font-medium text-ink-faint transition-colors duration-200 hover:text-ink'
-      }
-    >
-      {children}
-    </button>
   )
 }
 

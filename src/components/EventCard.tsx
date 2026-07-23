@@ -16,11 +16,13 @@ interface EventCardProps {
   event: ClubEvent
   // Для таймлайна плана: слоты тем главы (занятые/свободные) вместо списка докладов.
   topicSlots?: TopicSlot[]
+  // Мелкая подпись под слотами (например, «занятость временно недоступна»).
+  topicSlotsNote?: string
 }
 
 // Карточка встречи: открытое обсуждение главы или доклады (запись докладов).
 // У будущих — «Пойду» и ссылки; у прошедших/завершённых — записи трансляций.
-function EventCard({ event, topicSlots }: EventCardProps) {
+function EventCard({ event, topicSlots, topicSlotsNote }: EventCardProps) {
   const done = event.finished || isPast(event.date)
   // Слайды открываем только с момента начала встречи (не раньше).
   const slidesVisible = hasStarted(event.date, event.time)
@@ -144,6 +146,10 @@ function EventCard({ event, topicSlots }: EventCardProps) {
             </li>
           ))}
         </ul>
+      ) : null}
+
+      {event.type === 'live-talk' && topicSlotsNote ? (
+        <p className="mt-3 text-xs text-ink-faint">{topicSlotsNote}</p>
       ) : null}
 
       <div className="mt-4 flex flex-wrap gap-2">

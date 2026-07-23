@@ -13,7 +13,9 @@ import type {
 import { parseTopicMarkdown } from './markdown'
 
 // Базовый URL данных книжного клуба (публичный репозиторий book-club-data).
+// Переопределяется через VITE_RAW_BASE (см. .env.example).
 export const RAW_BASE =
+  import.meta.env.VITE_RAW_BASE ??
   'https://raw.githubusercontent.com/bookclubit/book-club-data/main'
 
 // Единый реестр контента: книги (с главами), события, спикеры.
@@ -51,7 +53,9 @@ export function speakerUrl(): string {
 
 // --- Занятость тем (оперативные данные из D1 бота, не из git) ---
 
-export const BOT_API = 'https://book-club-bot.vitrumbeta.workers.dev'
+// HTTP API бота (Cloudflare Workers). Переопределяется через VITE_BOT_API.
+export const BOT_API =
+  import.meta.env.VITE_BOT_API ?? 'https://book-club-bot.vitrumbeta.workers.dev'
 
 export interface TopicClaim {
   topic_id: string | null

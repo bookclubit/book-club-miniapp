@@ -13,9 +13,12 @@ export function EventProgramCard({
   event,
   claims,
   showSlots,
+  claimsUnavailable,
 }: {
   event: ClubEvent
   claims: TopicClaim[]
+  // Заявки из бота не загрузились: темы показываем свободными + мелкая подпись.
+  claimsUnavailable?: boolean
   showSlots: boolean
 }) {
   // Для «докладов» темы главы — слоты (и в плане, и в архиве). Единый источник
@@ -55,7 +58,17 @@ export function EventProgramCard({
   // В плане показываем все темы (свободные тоже), в архиве — только занятые.
   const visibleSlots = slots && !showSlots ? slots.filter((s) => s.speaker) : slots
 
-  return <EventCard event={event} topicSlots={visibleSlots} />
+  return (
+    <EventCard
+      event={event}
+      topicSlots={visibleSlots}
+      topicSlotsNote={
+        isLiveTalk && claimsUnavailable
+          ? 'Занятость тем временно недоступна — все темы показаны свободными.'
+          : undefined
+      }
+    />
+  )
 }
 
 export default EventProgramCard

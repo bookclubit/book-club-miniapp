@@ -1,18 +1,22 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
 import BottomNav from './components/BottomNav'
+import ErrorBoundary from './components/ErrorBoundary'
 import Header from './components/Header'
+import Loading from './components/Loading'
 import { AuthProvider } from './lib/useAuth'
-import Account from './pages/Account'
-import Book from './pages/Book'
-import Books from './pages/Books'
-import Chapter from './pages/Chapter'
-import Home from './pages/Home'
-import Meetings from './pages/Meetings'
-import Speaker from './pages/Speaker'
-import Speakers from './pages/Speakers'
-import Study from './pages/Study'
-import StudyIndex from './pages/StudyIndex'
+
+// Страницы грузятся лениво (code-splitting): каждая — отдельный чанк.
+const Account = lazy(() => import('./pages/Account'))
+const Book = lazy(() => import('./pages/Book'))
+const Books = lazy(() => import('./pages/Books'))
+const Chapter = lazy(() => import('./pages/Chapter'))
+const Home = lazy(() => import('./pages/Home'))
+const Meetings = lazy(() => import('./pages/Meetings'))
+const Speaker = lazy(() => import('./pages/Speaker'))
+const Speakers = lazy(() => import('./pages/Speakers'))
+const Study = lazy(() => import('./pages/Study'))
+const StudyIndex = lazy(() => import('./pages/StudyIndex'))
 
 // Прокрутка к началу при смене маршрута.
 function ScrollToTop() {
@@ -23,24 +27,35 @@ function ScrollToTop() {
   return null
 }
 
-// Смена ключа по маршруту перезапускает анимации появления страницы.
+// Смена ключа по маршруту перезапускает анимации появления страницы
+// (и заодно сбрасывает границу ошибок при переходе на другую страницу).
 function AnimatedRoutes() {
   const { pathname } = useLocation()
   return (
     <main key={pathname}>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/books" element={<Books />} />
-        <Route path="/meetings" element={<Meetings />} />
-        <Route path="/speakers" element={<Speakers />} />
-        <Route path="/speaker/:id" element={<Speaker />} />
-        <Route path="/account" element={<Account />} />
-        <Route path="/book/:bookId" element={<Book />} />
-        <Route path="/book/:bookId/chapter/:chapterId" element={<Chapter />} />
-        <Route path="/study" element={<StudyIndex />} />
-        <Route path="/study/:bookId" element={<Study />} />
-        <Route path="*" element={<Home />} />
-      </Routes>
+      <ErrorBoundary>
+        <Suspense
+          fallback={
+            <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+              <Loading label="Загружаем страницу…" />
+            </div>
+          }
+        >
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/books" element={<Books />} />
+            <Route path="/meetings" element={<Meetings />} />
+            <Route path="/speakers" element={<Speakers />} />
+            <Route path="/speaker/:id" element={<Speaker />} />
+            <Route path="/account" element={<Account />} />
+            <Route path="/book/:bookId" element={<Book />} />
+            <Route path="/book/:bookId/chapter/:chapterId" element={<Chapter />} />
+            <Route path="/study" element={<StudyIndex />} />
+            <Route path="/study/:bookId" element={<Study />} />
+            <Route path="*" element={<Home />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
     </main>
   )
 }

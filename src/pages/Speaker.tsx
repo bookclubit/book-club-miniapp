@@ -6,6 +6,7 @@ import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
+import Pill from '../components/Pill'
 import { bookTitleById, fetchClaims, fetchEvents, fetchSpeakers, mediaUrl } from '../lib/api'
 import type { TopicClaim } from '../lib/api'
 import { collectSpeakerTalks } from '../lib/speakers'
@@ -17,7 +18,8 @@ function Speaker() {
   const { id = '' } = useParams()
   const speakers = useSWR<IndexSpeaker[]>('speakers', fetchSpeakers)
   const events = useSWR<ClubEvent[]>('events', fetchEvents)
-  const { data: claims } = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
+  // Ошибка заявок не роняет профиль: покажем только подтверждённые доклады.
+  const claims = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
   const [book, setBook] = useState<string>('all')
   const [year, setYear] = useState<string>('all')
 
@@ -41,7 +43,7 @@ function Speaker() {
     )
   }
 
-  const talks = collectSpeakerTalks(events.data ?? [], speaker, claims ?? [])
+  const talks = collectSpeakerTalks(events.data ?? [], speaker, claims.data ?? [])
 
   // Книги, в которых спикер участвовал (для фильтра).
   const books: Array<{ id: string; title: string }> = []
@@ -110,28 +112,34 @@ function Speaker() {
       <section className="reveal mt-10" style={{ '--reveal-delay': '80ms' } as React.CSSProperties}>
         <h2 className="font-display text-2xl font-semibold text-ink">Доклады</h2>
 
+        {claims.error ? (
+          <p className="mt-2 text-xs text-ink-faint">
+            Заявки на доклады временно недоступны — показаны только подтверждённые доклады.
+          </p>
+        ) : null}
+
         {books.length > 1 ? (
           <div className="mt-4 flex flex-wrap gap-2">
-            <FilterChip active={book === 'all'} onClick={() => setBook('all')}>
+            <Pill active={book === 'all'} onClick={() => setBook('all')}>
               Все книги
-            </FilterChip>
+            </Pill>
             {books.map((b) => (
-              <FilterChip key={b.id} active={book === b.id} onClick={() => setBook(b.id)}>
+              <Pill key={b.id} active={book === b.id} onClick={() => setBook(b.id)}>
                 {b.title}
-              </FilterChip>
+              </Pill>
             ))}
           </div>
         ) : null}
 
         {years.length > 1 ? (
           <div className="mt-3 flex flex-wrap gap-2">
-            <FilterChip active={year === 'all'} onClick={() => setYear('all')}>
+            <Pill active={year === 'all'} onClick={() => setYear('all')}>
               Все годы
-            </FilterChip>
+            </Pill>
             {years.map((y) => (
-              <FilterChip key={y} active={year === y} onClick={() => setYear(y)}>
+              <Pill key={y} active={year === y} onClick={() => setYear(y)}>
                 {y}
-              </FilterChip>
+              </Pill>
             ))}
           </div>
         ) : null}
@@ -206,31 +214,6 @@ function formatTalkDate(date: string): string {
     month: 'long',
     year: 'numeric',
   })
-}
-
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={
-        active
-          ? 'rounded-full bg-accent px-4 py-1.5 text-sm font-medium text-on-accent'
-          : 'rounded-full border border-line bg-surface px-4 py-1.5 text-sm font-medium text-ink-faint transition-colors duration-200 hover:text-ink'
-      }
-    >
-      {children}
-    </button>
-  )
 }
 
 function Centered({ children }: { children: React.ReactNode }) {

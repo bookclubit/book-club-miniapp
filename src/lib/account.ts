@@ -2,6 +2,7 @@
 // настройки). Сессия — подписанный токен из /api/auth/telegram в localStorage.
 
 import { BOT_API } from './api'
+import type { ReviewGrade, StudyProgress } from '../types'
 
 export interface PlatformUser {
   id: number
@@ -120,6 +121,49 @@ export async function fetchMe(): Promise<PlatformUser> {
 export async function fetchServerProgress(): Promise<ServerCardProgress[]> {
   const data = await authFetch<{ progress: ServerCardProgress[] }>('/api/progress')
   return data.progress
+}
+
+/**
+ * Оценка карточки на сервере: POST /api/review { card_id, book_id, grade }.
+ * Сервер сам считает SM-2 и возвращает новый прогресс карточки.
+ */
+export async function sendCardReview(
+  bookId: string,
+  cardId: string,
+  grade: ReviewGrade,
+): Promise<ServerCardProgress> {
+  const data = await authFetch<{ progress: ServerCardProgress }>('/api/review', {
+    method: 'POST',
+    body: JSON.stringify({ card_id: cardId, book_id: bookId, grade }),
+  })
+  return data.progress
+}
+
+/** Серверная запись прогресса → локальный формат карточки (Study). */
+export function serverToCardProgress(p: ServerCardProgress) {
+  return {
+    repetitions: p.repetition,
+    interval: p.interval,
+    easiness: p.easiness,
+    dueDate: new Date(p.dueDate).toISOString(),
+  }
+}
+
+/**
+ * Серверный прогресс (ключи «<book>:<cardId>») → локальный прогресс книги
+ * (ключи — id карточек без префикса), как его хранит и читает Study.
+ */
+export function serverToStudyProgress(
+  list: ServerCardProgress[],
+  bookId: string,
+): StudyProgress {
+  const prefix = `${bookId}:`
+  const progress: StudyProgress = {}
+  for (const p of list) {
+    if (!p.cardId.startsWith(prefix)) continue
+    progress[p.cardId.slice(prefix.length)] = serverToCardProgress(p)
+  }
+  return progress
 }
 
 export async function fetchUserSettings(): Promise<{ daily_cards: number; options: number[] }> {

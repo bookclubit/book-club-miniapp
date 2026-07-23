@@ -17,6 +17,8 @@ export const BOOK_CATEGORIES: Array<{ id: BookCategory; label: string }> = [
 export interface Author {
   name: string
   avatar?: string // путь относительно корня book-club-data, напр. /media/authors/x.webp
+  /** Ссылка на автора (сайт/профиль) — используется в презентациях talks. */
+  url?: string
 }
 
 export interface BookMeta {
@@ -31,6 +33,10 @@ export interface BookMeta {
   tags: string[]
   description: string
   total_chapters: number
+  /** Код книги для генератора презентаций (talks): DOCKER, REACT… */
+  code?: string
+  /** Ссылка на книгу (издательство/магазин) — используется в презентациях talks. */
+  url?: string
 }
 
 // Ссылка на тему внутри chapter.json

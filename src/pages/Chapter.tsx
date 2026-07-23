@@ -18,8 +18,10 @@ function Chapter() {
     bookId && chapterId ? chapterUrl(bookId, chapterId) : null,
     fetcher,
   )
+  // У главы может ещё не быть тем (topics: []) — тогда и грузить нечего,
+  // сразу покажем пустое состояние.
   const topics = useSWR<Topic[]>(
-    chapter.data ? `topics:${bookId}:${chapterId}` : null,
+    chapter.data && chapter.data.topics.length > 0 ? `topics:${bookId}:${chapterId}` : null,
     () => fetchTopics(bookId as string, chapterId as string, chapter.data as ChapterData),
   )
   const cards = useSWR<Flashcard[]>(
@@ -73,7 +75,10 @@ function Chapter() {
             ) : topics.error ? (
               <ErrorState message={(topics.error as Error).message} />
             ) : !topics.data || topics.data.length === 0 ? (
-              <EmptyState title="Темы пока не добавлены" />
+              <EmptyState
+                title="Темы пока не добавлены"
+                hint="Материалы появятся после разбора главы на встрече."
+              />
             ) : (
               <div className="space-y-5">
                 {topics.data.map((topic, i) => (

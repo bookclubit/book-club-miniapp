@@ -7,21 +7,22 @@ import ErrorState from '../components/ErrorState'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import {
+  fetchBooks,
   fetchChapters,
   fetchFlashcards,
-  fetcher,
   mediaUrl,
-  metaUrl,
   readingProgress,
 } from '../lib/api'
+import type { BookWithFolder } from '../lib/api'
 import { plural } from '../lib/format'
-import type { BookMeta, ChapterWithSlug, Flashcard } from '../types'
+import type { ChapterWithSlug, Flashcard } from '../types'
 
 // Страница книги: обложка, авторы, описание, главы и переход к карточкам.
 function Book() {
   const { bookId } = useParams<{ bookId: string }>()
 
-  const meta = useSWR<BookMeta>(bookId ? metaUrl(bookId) : null, fetcher)
+  // Единый кэш книг с Home/Books: мета не грузится второй раз по своему ключу.
+  const books = useSWR<BookWithFolder[]>('books', fetchBooks)
   const chapters = useSWR<ChapterWithSlug[]>(
     bookId ? `chapters:${bookId}` : null,
     () => fetchChapters(bookId as string),
@@ -33,8 +34,9 @@ function Book() {
 
   if (!bookId) return <ErrorState message="Не указана книга." />
 
-  const isLoading = meta.isLoading || chapters.isLoading
-  const error = meta.error || chapters.error
+  const meta = books.data?.find((b) => b.folder === bookId)?.meta
+  const isLoading = books.isLoading || chapters.isLoading
+  const error = books.error || chapters.error
   const cardCount = cards.data?.length ?? 0
 
   return (
@@ -52,12 +54,12 @@ function Book() {
         </div>
       ) : (
         <>
-          {meta.data ? (
+          {meta ? (
             <header className="reveal mt-8 flex flex-col gap-8 sm:flex-row">
-              {meta.data.cover ? (
+              {meta.cover ? (
                 <img
-                  src={mediaUrl(meta.data.cover)}
-                  alt={`Обложка книги «${meta.data.title}»`}
+                  src={mediaUrl(meta.cover)}
+                  alt={`Обложка книги «${meta.title}»`}
                   width={176}
                   height={250}
                   className="h-62.5 w-44 shrink-0 self-start rounded-lg object-cover shadow-lift"
@@ -66,17 +68,17 @@ function Book() {
 
               <div className="min-w-0">
                 <h1 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">
-                  {meta.data.title}
+                  {meta.title}
                 </h1>
-                {meta.data.title_original ? (
+                {meta.title_original ? (
                   <p className="font-display mt-1 text-base italic text-ink-faint">
-                    {meta.data.title_original}
-                    {meta.data.edition ? ` · ${meta.data.edition}-е издание` : ''}
+                    {meta.title_original}
+                    {meta.edition ? ` · ${meta.edition}-е издание` : ''}
                   </p>
                 ) : null}
 
                 <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-                  {meta.data.authors.map((author) => (
+                  {meta.authors.map((author) => (
                     <span key={author.name} className="flex items-center gap-2">
                       {author.avatar ? (
                         <img
@@ -94,22 +96,22 @@ function Book() {
                 </div>
 
                 <p className="mt-4 max-w-2xl leading-relaxed text-ink-soft">
-                  {meta.data.description}
+                  {meta.description}
                 </p>
 
                 <div className="mt-5 max-w-md">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-ink-faint">
-                      Разобрано {chapters.data?.length ?? 0} из {meta.data.total_chapters}{' '}
-                      {plural(meta.data.total_chapters, 'главы', 'глав', 'глав')}
+                      Разобрано {chapters.data?.length ?? 0} из {meta.total_chapters}{' '}
+                      {plural(meta.total_chapters, 'главы', 'глав', 'глав')}
                     </span>
                     <span className="font-semibold text-ink">
-                      {readingProgress(bookId, meta.data.total_chapters)}%
+                      {readingProgress(bookId, meta.total_chapters)}%
                     </span>
                   </div>
                   <div
                     role="progressbar"
-                    aria-valuenow={readingProgress(bookId, meta.data.total_chapters)}
+                    aria-valuenow={readingProgress(bookId, meta.total_chapters)}
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-label="Прогресс чтения"
@@ -117,7 +119,7 @@ function Book() {
                   >
                     <div
                       className="progress-fill h-full rounded-full bg-accent"
-                      style={{ width: `${readingProgress(bookId, meta.data.total_chapters)}%` }}
+                      style={{ width: `${readingProgress(bookId, meta.total_chapters)}%` }}
                     />
                   </div>
                 </div>
