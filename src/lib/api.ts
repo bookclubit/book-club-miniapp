@@ -41,6 +41,45 @@ export async function fetchSettings(): Promise<ClubSettings> {
   }
 }
 
+// Репозиторий презентаций (book-club-talks): по нему проверяем, принята ли
+// презентация спикера. Переопределяется через VITE_TALKS_RAW_BASE.
+export const TALKS_RAW_BASE =
+  import.meta.env.VITE_TALKS_RAW_BASE ??
+  'https://raw.githubusercontent.com/bookclubit/book-club-talks/main'
+
+// Папка доклада из slides_url: URL детерминирован — <папка-lowercase>.pages.dev.
+// Для внешних ссылок (не pages.dev) папки нет.
+function talkFolderFromSlides(url: string): string | undefined {
+  try {
+    const host = new URL(url).hostname
+    if (!host.endsWith('.pages.dev')) return undefined
+    return host.slice(0, -'.pages.dev'.length).toUpperCase()
+  } catch {
+    return undefined
+  }
+}
+
+// Презентация «принята» = PR спикера смержен в book-club-talks, то есть папка
+// доклада появилась в main. Внешние ссылки (вручную заданные, не pages.dev)
+// считаем принятыми. Возвращает множество принятых slides_url.
+// Ключ SWR: `slides-published:<urls>`.
+export async function fetchPublishedSlides(urls: string[]): Promise<Set<string>> {
+  const checked = await Promise.all(
+    urls.map(async (url) => {
+      const folder = talkFolderFromSlides(url)
+      if (!folder) return url
+      try {
+        // raw.githubusercontent не поддерживает HEAD — только GET.
+        const res = await fetch(`${TALKS_RAW_BASE}/talks/${folder}/index.html`)
+        return res.ok ? url : undefined
+      } catch {
+        return undefined
+      }
+    }),
+  )
+  return new Set(checked.filter((u): u is string => Boolean(u)))
+}
+
 // Телеграм-бот клуба (book-club-bot, @bookclubfrontbot). Через него —
 // регистрация спикеров: диплинк /start с полезной нагрузкой.
 export const BOT_URL = 'https://t.me/bookclubfrontbot'

@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import { fetchEventChapterTopics, speakerAvatar } from '../lib/api'
+import { fetchEventChapterTopics, fetchPublishedSlides, speakerAvatar } from '../lib/api'
 import type { TopicClaim } from '../lib/api'
 import type { ClubEvent, TopicRef } from '../types'
 import EventCard from './EventCard'
@@ -55,8 +55,24 @@ export function EventProgramCard({
     }
   })
 
+  // Ссылка на слайды появляется, когда презентация принята — PR спикера
+  // смержен в book-club-talks (до мержа боевой URL slides_url отдаёт 404).
+  const slideUrls = (slots ?? [])
+    .map((s) => s.slidesUrl)
+    .filter((u): u is string => Boolean(u))
+  const { data: publishedSlides } = useSWR<Set<string>>(
+    slideUrls.length > 0 ? `slides-published:${slideUrls.join(',')}` : null,
+    () => fetchPublishedSlides(slideUrls),
+  )
+  const gatedSlots = slots?.map((s) =>
+    s.slidesUrl && !publishedSlides?.has(s.slidesUrl)
+      ? { ...s, slidesUrl: undefined }
+      : s,
+  )
+
   // В плане показываем все темы (свободные тоже), в архиве — только занятые.
-  const visibleSlots = slots && !showSlots ? slots.filter((s) => s.speaker) : slots
+  const visibleSlots =
+    gatedSlots && !showSlots ? gatedSlots.filter((s) => s.speaker) : gatedSlots
 
   return (
     <EventCard
