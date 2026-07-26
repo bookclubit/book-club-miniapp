@@ -7,8 +7,8 @@ import Loading from '../components/Loading'
 import LearningOutcome from '../components/LearningOutcome'
 import AddChapterToDeck from '../components/AddChapterToDeck'
 import TopicSection from '../components/TopicSection'
-import { chapterUrl, fetchFlashcards, fetchTopics, fetcher } from '../lib/api'
-import type { Chapter as ChapterData, Flashcard, Topic } from '../types'
+import { chapterUrl, fetchFlashcards, fetchIndex, fetcher } from '../lib/api'
+import type { Chapter as ChapterData, ContentIndex, Flashcard } from '../types'
 
 // Страница главы: описание, ожидаемый результат и темы (Markdown-материалы).
 function Chapter() {
@@ -18,16 +18,13 @@ function Chapter() {
     bookId && chapterId ? chapterUrl(bookId, chapterId) : null,
     fetcher,
   )
-  // У главы может ещё не быть тем (topics: []) — тогда и грузить нечего,
-  // сразу покажем пустое состояние.
-  const topics = useSWR<Topic[]>(
-    chapter.data && chapter.data.topics.length > 0 ? `topics:${bookId}:${chapterId}` : null,
-    () => fetchTopics(bookId as string, chapterId as string, chapter.data as ChapterData),
-  )
   const cards = useSWR<Flashcard[]>(
     bookId ? `flashcards:${bookId}` : null,
     () => fetchFlashcards(bookId as string),
   )
+  // Реестр нужен темам: по нему находятся аватарки спикеров и их страницы.
+  // На прямом заходе в главу (диплинк) его иначе никто не загрузит.
+  useSWR<ContentIndex>('index', fetchIndex)
 
   if (!bookId || !chapterId) return <ErrorState message="Не указана глава." />
 
@@ -70,19 +67,15 @@ function Chapter() {
           </header>
 
           <div className="mt-12">
-            {topics.isLoading ? (
-              <Loading label="Загружаем темы…" />
-            ) : topics.error ? (
-              <ErrorState message={(topics.error as Error).message} />
-            ) : !topics.data || topics.data.length === 0 ? (
+            {chapter.data.topics.length === 0 ? (
               <EmptyState
                 title="Темы пока не добавлены"
                 hint="Материалы появятся после разбора главы на встрече."
               />
             ) : (
               <div className="space-y-5">
-                {topics.data.map((topic, i) => (
-                  <TopicSection key={topic.meta.id} topic={topic} index={i} />
+                {chapter.data.topics.map((topic, i) => (
+                  <TopicSection key={topic.id} topic={topic} index={i} />
                 ))}
               </div>
             )}

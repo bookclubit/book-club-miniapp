@@ -8,9 +8,7 @@ import type {
   Flashcard,
   IndexSpeaker,
   Topic,
-  TopicRef,
 } from '../types'
-import { parseTopicMarkdown } from './markdown'
 
 // Базовый URL данных книжного клуба (публичный репозиторий book-club-data).
 // Переопределяется через VITE_RAW_BASE (см. .env.example).
@@ -117,7 +115,7 @@ export async function fetchClaims(): Promise<TopicClaim[]> {
 export async function fetchEventChapterTopics(
   bookId: string,
   chapterSlug: string,
-): Promise<TopicRef[]> {
+): Promise<Topic[]> {
   const index = await fetchIndex()
   const folder =
     index.books.find((b) => b.id === bookId)?.folder ??
@@ -131,13 +129,17 @@ export async function fetchEventChapterTopics(
   }
 }
 
-// Аватарка спикера по имени или алиасу (в .md-темах спикер указан по имени).
+// Аватарка спикера по имени или алиасу (в темах спикер указан по имени).
 // Реестр к моменту вызова уже загружен страницей; иначе просто без аватарки.
 export function speakerAvatar(name: string): string | undefined {
-  const speaker = contentIndex?.speakers.find(
+  return mediaUrl(speakerByName(name)?.avatar)
+}
+
+// Профиль спикера по имени или алиасу — чтобы вести с темы на его страницу.
+export function speakerByName(name: string): IndexSpeaker | undefined {
+  return contentIndex?.speakers.find(
     (s) => s.name === name || s.aliases.includes(name),
   )
-  return mediaUrl(speaker?.avatar)
 }
 
 // Спикеры клуба из реестра (профили: имя, аватар, био, соцсети). Ключ SWR: 'speakers'.
@@ -153,10 +155,11 @@ export function bookTitleById(bookId?: string): string | undefined {
   return contentIndex?.books.find((b) => b.id === bookId || b.folder === bookId)?.title
 }
 
-// Прогресс чтения книги: доля разобранных глав (из реестра) от общего числа.
+// Прогресс чтения книги: доля разобранных глав от общего числа. Разобранная =
+// глава, у которой в реестре есть хотя бы одна тема (пустые заготовки не в счёт).
 export function readingProgress(folder: string, totalChapters: number): number {
-  const done =
-    contentIndex?.books.find((b) => b.folder === folder)?.chapters.length ?? 0
+  const chapters = contentIndex?.books.find((b) => b.folder === folder)?.chapters ?? []
+  const done = chapters.filter((c) => c.topics > 0).length
   if (totalChapters <= 0) return 0
   return Math.min(100, Math.round((done / totalChapters) * 100))
 }
@@ -175,10 +178,6 @@ export function chapterUrl(bookId: string, chapterSlug: string): string {
   return `${RAW_BASE}/books/${bookId}/chapters/${chapterSlug}/chapter.json`
 }
 
-export function topicUrl(bookId: string, chapterSlug: string, file: string): string {
-  return `${RAW_BASE}/books/${bookId}/chapters/${chapterSlug}/${file}`
-}
-
 // Пути в данных (cover, avatar) заданы относительно корня репозитория: /media/...
 export function mediaUrl(path?: string): string | undefined {
   if (!path) return undefined
@@ -193,14 +192,6 @@ export async function fetcher<T>(url: string): Promise<T> {
     throw new Error(`Не удалось загрузить данные (${res.status}): ${url}`)
   }
   return (await res.json()) as T
-}
-
-async function fetchText(url: string): Promise<string> {
-  const res = await fetch(url)
-  if (!res.ok) {
-    throw new Error(`Не удалось загрузить данные (${res.status}): ${url}`)
-  }
-  return res.text()
 }
 
 // Загружает meta.json всех книг из реестра. Ключ SWR: 'books'.
@@ -221,31 +212,17 @@ export async function fetchBooks(): Promise<BookWithFolder[]> {
 }
 
 // Загружает все главы книги вместе с их slug-ами. Ключ SWR: `chapters:${bookId}`.
+// Темы приезжают внутри chapter.json — отдельных запросов на тему больше нет.
 export async function fetchChapters(bookId: string): Promise<ChapterWithSlug[]> {
   const index = await fetchIndex()
-  const slugs = index.books.find((b) => b.folder === bookId)?.chapters ?? []
+  const entries = index.books.find((b) => b.folder === bookId)?.chapters ?? []
   const chapters = await Promise.all(
-    slugs.map(async (slug) => {
+    entries.map(async ({ slug }) => {
       const chapter = await fetcher<Chapter>(chapterUrl(bookId, slug))
       return { ...chapter, slug }
     }),
   )
   return chapters.sort((a, b) => a.order - b.order)
-}
-
-// Загружает все темы главы (.md с frontmatter). Ключ SWR: `topics:${bookId}:${slug}`.
-export async function fetchTopics(
-  bookId: string,
-  chapterSlug: string,
-  chapter: Chapter,
-): Promise<Topic[]> {
-  const topics = await Promise.all(
-    chapter.topics.map(async (ref) => {
-      const raw = await fetchText(topicUrl(bookId, chapterSlug, ref.file))
-      return parseTopicMarkdown(raw, ref)
-    }),
-  )
-  return topics.sort((a, b) => a.meta.order - b.meta.order)
 }
 
 // Загружает карточки книги. У книги может ещё не быть flashcards.json — тогда пусто.

@@ -39,11 +39,16 @@ export interface BookMeta {
   url?: string
 }
 
-// Ссылка на тему внутри chapter.json
-export interface TopicRef {
+// Тема главы — объект внутри chapter.json. Отдельных .md у тем нет:
+// тема несёт только название, спикеров и ссылки на материалы.
+export interface Topic {
   id: string
   title: string
-  file: string // имя .md-файла в папке главы
+  speakers: string[]
+  video_youtube?: string
+  video_vk?: string
+  presentation?: string
+  resources: string[]
 }
 
 export interface Chapter {
@@ -51,30 +56,12 @@ export interface Chapter {
   title: string
   description: string
   learning_outcome: string
-  topics: TopicRef[]
+  topics: Topic[]
 }
 
 // Slug главы (имя папки) + её содержимое. slug нужен для маршрута /chapter/:chapterId.
 export interface ChapterWithSlug extends Chapter {
   slug: string
-}
-
-// Frontmatter .md-файла темы
-export interface TopicMeta {
-  id: string
-  title: string
-  order: number
-  video_youtube?: string
-  video_vk?: string
-  presentation?: string
-  resources: string[]
-  speakers: string[]
-}
-
-// Тема целиком: frontmatter + тело в Markdown
-export interface Topic {
-  meta: TopicMeta
-  body: string
 }
 
 // --- События клуба (events/) ---
@@ -188,13 +175,22 @@ export type ReviewGrade = 'again' | 'hard' | 'good' | 'easy'
 // raw.githubusercontent.com не листает директории, поэтому список книг, глав,
 // событий и спикеров ведёт CMS в index.json; приложение читает его при старте.
 
+// Глава в реестре: в него попадают все главы с chapter.json, даже пустые.
+// `topics` — число тем, по нему считается «разобранность» главы.
+export interface IndexChapter {
+  slug: string
+  order: number
+  title: string
+  topics: number
+}
+
 export interface IndexBook {
   folder: string
   id: string
   title: string
   status: BookStatus
   category?: BookCategory
-  chapters: string[] // slug-и папок глав
+  chapters: IndexChapter[]
 }
 
 // Соцсети спикера (в его профиле). Порядок задаёт отрисовку иконок.
@@ -217,7 +213,7 @@ export interface IndexSpeaker {
 }
 
 export interface ContentIndex {
-  version: 1
+  version: number
   active_book: string
   books: IndexBook[]
   events: string[] // пути относительно events/

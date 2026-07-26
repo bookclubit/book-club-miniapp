@@ -13,7 +13,7 @@ GitHub-репозитория `book-club-data` (организация `bookclub
 
 ## Структура
 - `src/pages/` — страницы приложения (Home, Book, Chapter, Study)
-- `src/lib/` — утилиты: `api.ts` (URL-хелперы + fetcher), `markdown.ts` (frontmatter и Markdown тем), `format.ts` (плюрализация, даты), `storage.ts` (SM-2 и прогресс)
+- `src/lib/` — утилиты: `api.ts` (URL-хелперы + fetcher), `format.ts` (плюрализация, даты), `storage.ts` (SM-2 и прогресс)
 - `src/types.ts` — общие типы
 - `src/components/` — переиспользуемые компоненты (`Icon.tsx` — единственный источник иконок)
 
@@ -28,8 +28,10 @@ GitHub-репозитория `book-club-data` (организация `bookclub
 ## Источник данных
 База: `https://raw.githubusercontent.com/bookclubit/book-club-data/main/`
 - `books/{folder}/meta.json` — мета книги; `authors` — объекты `{name, avatar}`; `id` в meta может отличаться от имени папки, маршруты строятся по имени папки
-- `books/{folder}/chapters/{chapterSlug}/chapter.json` — индекс главы со списком `topics: [{id, title, file}]`
-- `books/{folder}/chapters/{chapterSlug}/{file}.md` — тема: YAML-frontmatter (видео, презентация, resources, speakers) + Markdown-тело; парсится в `src/lib/markdown.ts`
+- `books/{folder}/chapters/{chapterSlug}/chapter.json` — глава целиком, вместе с темами:
+  `topics: [{id, title, speakers[], video_youtube, video_vk, presentation, resources[]}]`.
+  У темы нет ни отдельного файла, ни текста: в UI это название, иконка с именем
+  спикера и ссылки на материалы (`components/TopicSection.tsx`)
 - `books/{folder}/flashcards.json` — карточки (может отсутствовать — тогда 404 трактуется как пустой список)
 - `events/closed-chapters/*.json` и `events/live-talks/*.json` — встречи клуба
 - Пути к изображениям в данных относительные (`/media/...`) — оборачивать в `mediaUrl()` из `api.ts`
@@ -37,11 +39,15 @@ GitHub-репозитория `book-club-data` (организация `bookclub
 `raw.githubusercontent.com` не умеет листать директории, поэтому список книг
 (с главами), событий и спикеров приложение берёт из единого реестра
 `index.json` в корне book-club-data (`fetchIndex()` в `api.ts`, кэш на сессию).
-Реестр ведёт CMS — контент, добавленный через неё, появляется в miniapp без
-правок кода. Захардкоженных списков больше нет.
+Реестр генерируется Action-ом в book-club-data после каждого мержа — контент,
+добавленный через CMS, появляется в miniapp без правок кода.
 
-Прогресс чтения книги (`readingProgress` в `api.ts`) считается как доля разобранных
-глав (из реестра) от `total_chapters` из meta.
+В реестре (`version: 2`) главы книги — объекты `{slug, order, title, topics}`,
+где `topics` — число тем. Попадают **все** главы с `chapter.json`, включая
+пустые заготовки: глава видна сразу после создания.
+
+Прогресс чтения книги (`readingProgress` в `api.ts`) считается как доля
+разобранных глав (`topics > 0`) от `total_chapters` из meta.
 
 ## Телеграм-бот
 Бот клуба — `@bookclubfrontbot` (репозиторий `book-club-bot`, Cloudflare Workers).

@@ -1,7 +1,7 @@
 import useSWR from 'swr'
 import { fetchEventChapterTopics, fetchPublishedSlides, speakerAvatar } from '../lib/api'
 import type { TopicClaim } from '../lib/api'
-import type { ClubEvent, TopicRef } from '../types'
+import type { ClubEvent, Topic } from '../types'
 import EventCard from './EventCard'
 import type { TopicSlot } from './EventCard'
 
@@ -25,7 +25,7 @@ export function EventProgramCard({
   // занятости — заявки D1 (event.talks больше не используется).
   const isLiveTalk = event.type === 'live-talk' && Boolean(event.book_id && event.chapter)
 
-  const { data: topics } = useSWR<TopicRef[]>(
+  const { data: topics } = useSWR<Topic[]>(
     isLiveTalk ? `plan-topics:${event.book_id}:${event.chapter}` : null,
     () => fetchEventChapterTopics(event.book_id!, event.chapter!),
   )
