@@ -79,11 +79,16 @@ function hostLabel(url: string): string {
 
 // Секция темы на странице главы: номер, название, спикеры и ссылки на материалы.
 function TopicSection({ topic, index }: TopicSectionProps) {
+  // Списки могут отсутствовать: файл главы правили руками или CDN отдал версию
+  // до перехода на новую схему. Тогда показываем тему одним названием.
+  const speakers = topic.speakers ?? []
+  const resources = topic.resources ?? []
+
   const materials = [
     topic.video_youtube ? { href: topic.video_youtube, icon: 'play' as const, label: 'Запись на YouTube' } : null,
     topic.video_vk ? { href: topic.video_vk, icon: 'play' as const, label: 'Запись в VK' } : null,
     topic.presentation ? { href: topic.presentation, icon: 'file' as const, label: 'Презентация' } : null,
-    ...topic.resources.map((url) => ({
+    ...resources.map((url) => ({
       href: url,
       icon: 'external' as const,
       label: hostLabel(url),
@@ -105,9 +110,9 @@ function TopicSection({ topic, index }: TopicSectionProps) {
         </h2>
       </div>
 
-      {topic.speakers.length > 0 ? (
+      {speakers.length > 0 ? (
         <div className="mt-4 flex flex-wrap gap-2">
-          {topic.speakers.map((name) => (
+          {speakers.map((name) => (
             <SpeakerChip key={name} name={name} />
           ))}
         </div>

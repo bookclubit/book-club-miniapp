@@ -6,6 +6,8 @@ import type {
   ClubSettings,
   ContentIndex,
   Flashcard,
+  IndexBook,
+  IndexChapter,
   IndexSpeaker,
   Topic,
 } from '../types'
@@ -24,9 +26,31 @@ let contentIndex: ContentIndex | null = null
 
 export async function fetchIndex(): Promise<ContentIndex> {
   if (!contentIndex) {
-    contentIndex = await fetcher<ContentIndex>(`${RAW_BASE}/index.json`)
+    contentIndex = normalizeIndex(await fetcher<RawContentIndex>(`${RAW_BASE}/index.json`))
   }
   return contentIndex
+}
+
+// Реестр как он лежит в репозитории: в v1 главы были slug-ами, в v2 — объектами.
+type RawContentIndex = Omit<ContentIndex, 'books'> & {
+  books: Array<Omit<IndexBook, 'chapters'> & { chapters: Array<IndexChapter | string> }>
+}
+
+// raw.githubusercontent.com кэширует файлы несколько минут, поэтому сразу после
+// выката приложение может получить ещё старый реестр. Приводим главы к объектам,
+// чтобы расхождение форматов не ломало экраны.
+function normalizeIndex(index: RawContentIndex): ContentIndex {
+  return {
+    ...index,
+    books: index.books.map((book) => ({
+      ...book,
+      chapters: book.chapters.map((chapter, i) =>
+        typeof chapter === 'string'
+          ? { slug: chapter, order: i + 1, title: chapter, topics: 1 }
+          : chapter,
+      ),
+    })),
+  }
 }
 
 // Настройки клуба (ссылки на соцсети и т.п.). Файла может ещё не быть —
