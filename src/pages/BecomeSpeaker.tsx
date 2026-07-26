@@ -56,6 +56,7 @@ function BecomeSpeaker() {
       ) : (
         <ApplyForm
           declined={membership?.status === 'declined'}
+          noUsername={!user.username}
           defaultName={
             membership?.full_name ?? [user.first_name, user.last_name].filter(Boolean).join(' ')
           }
@@ -124,11 +125,14 @@ function LoginView({
 
 function ApplyForm({
   declined,
+  noUsername,
   defaultName,
   defaultAbout,
   onSent,
 }: {
   declined: boolean
+  // Профиль спикера в каталоге клуба заводится по @username.
+  noUsername: boolean
   defaultName: string
   defaultAbout: string
   onSent: () => void
@@ -163,6 +167,13 @@ function ApplyForm({
             ? 'Прошлую заявку не одобрили — расскажи о себе подробнее, и админ посмотрит ещё раз.'
             : 'Темы докладов берут участники клуба. Расскажи о себе — админ посмотрит заявку и откроет доступ к темам. Приходить на встречи можно и без заявки.'}
         </p>
+
+        {noUsername ? (
+          <p className="mt-4 rounded-card bg-warn-soft p-3 text-sm text-warn">
+            У тебя не задан @username в Telegram — задай его в настройках, иначе клуб не сможет
+            оформить профиль спикера.
+          </p>
+        ) : null}
 
         <form onSubmit={submit} className="mt-5 space-y-4">
           <label className="block">
