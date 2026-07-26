@@ -1,3 +1,4 @@
+import { isPast } from './format'
 import type {
   BookMeta,
   Chapter,
@@ -132,6 +133,51 @@ export interface TopicClaim {
 export async function fetchClaims(): Promise<TopicClaim[]> {
   const data = await fetcher<{ claims: TopicClaim[] }>(`${BOT_API}/api/claims`)
   return data.claims
+}
+
+// Слот темы в плане: что можно взять себе на будущем эфире-«докладе».
+export interface PlanSlot {
+  topicId: string
+  title: string
+  eventId: string
+  eventTitle: string
+  date: string
+  time: string
+  stream?: number
+  bookTitle?: string
+}
+
+// Свободные темы будущих эфиров-«докладов» (занятость — заявки D1 бота).
+// Ключ SWR: 'plan-slots'. Бот проверяет тему заново при броне — здесь список
+// только для выбора.
+export async function fetchPlanSlots(): Promise<PlanSlot[]> {
+  const [events, claims] = await Promise.all([fetchEvents(), fetchClaims()])
+  const taken = new Set(claims.map((c) => c.topic_id).filter(Boolean))
+  const upcoming = events.filter(
+    (e) => e.type === 'live-talk' && !e.finished && !isPast(e.date) && e.book_id && e.chapter,
+  )
+
+  const slots: PlanSlot[] = []
+  for (const event of upcoming) {
+    const topics = await fetchEventChapterTopics(event.book_id!, event.chapter!)
+    // Главу могли поделить между эфирами: тогда у встречи свой набор тем.
+    const ids = event.type === 'live-talk' ? event.topic_ids : undefined
+    const own = ids && ids.length > 0 ? topics.filter((t) => ids.includes(t.id)) : topics
+    for (const topic of own) {
+      if (taken.has(topic.id)) continue
+      slots.push({
+        topicId: topic.id,
+        title: topic.title,
+        eventId: event.id,
+        eventTitle: event.title,
+        date: event.date,
+        time: event.time,
+        ...(event.stream ? { stream: event.stream } : {}),
+        ...(bookTitleById(event.book_id) ? { bookTitle: bookTitleById(event.book_id) } : {}),
+      })
+    }
+  }
+  return slots.sort((a, b) => a.date.localeCompare(b.date))
 }
 
 // Темы главы события для плана: book_id события может быть и id из meta,

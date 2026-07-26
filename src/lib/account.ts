@@ -92,7 +92,12 @@ async function authFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
     throw new Error('Нужен вход')
   }
   if (!res.ok) {
-    throw new Error(`Ошибка запроса (${res.status})`)
+    // Сообщение сервера точнее кода: «тему только что заняли», «нужна заявка».
+    const message = await res
+      .json()
+      .then((d) => (d as { error?: string }).error)
+      .catch(() => null)
+    throw new Error(message ?? `Ошибка запроса (${res.status})`)
   }
   return (await res.json()) as T
 }
@@ -164,6 +169,41 @@ export function serverToStudyProgress(
     progress[p.cardId.slice(prefix.length)] = serverToCardProgress(p)
   }
   return progress
+}
+
+// --- Участие в клубе: заявка и брони тем ---
+
+// Темы докладов берут участники клуба. Пока registered = false, слоты закрыты:
+// новый человек отправляет заявку с рассказом о себе, решение принимает админ.
+export interface Membership {
+  registered: boolean
+  status: 'none' | 'pending' | 'approved' | 'declined'
+  full_name: string | null
+  about: string | null
+  speaker: { id: string; name: string } | null
+}
+
+export async function fetchMembership(): Promise<Membership> {
+  return authFetch('/api/membership')
+}
+
+/** Заявка на участие: имя для программы + рассказ о себе (его увидит админ). */
+export async function applyMembership(
+  fullName: string,
+  about: string,
+): Promise<{ registered: boolean; status: Membership['status'] }> {
+  return authFetch('/api/membership', {
+    method: 'POST',
+    body: JSON.stringify({ full_name: fullName, about }),
+  })
+}
+
+/** Взять тему доклада: бот проверит участие и план, заявка уйдёт админу. */
+export async function claimTopic(topicId: string): Promise<{ topic_title: string }> {
+  return authFetch('/api/claim', {
+    method: 'POST',
+    body: JSON.stringify({ topic_id: topicId }),
+  })
 }
 
 export async function fetchUserSettings(): Promise<{ daily_cards: number; options: number[] }> {

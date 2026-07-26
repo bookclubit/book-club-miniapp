@@ -7,7 +7,7 @@ import EventProgramCard from '../components/EventProgramCard'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import SocialLinks from '../components/SocialLinks'
-import { fetchBooks, fetchClaims, fetchEvents, speakerUrl } from '../lib/api'
+import { fetchBooks, fetchClaims, fetchEvents } from '../lib/api'
 import type { BookWithFolder, TopicClaim } from '../lib/api'
 import type { ClubEvent } from '../types'
 
@@ -90,18 +90,14 @@ function Home() {
             </div>
             <p className="mt-2 text-ink-soft">
               Возьми тему из плана главы, разбери её на встрече — а презентацию клуб
-              соберёт за тебя из шаблона. Заявку одобрит админ.
+              соберёт за тебя из шаблона. Новым участникам — заявка с рассказом о себе,
+              её одобрит админ.
             </p>
           </div>
-          <a
-            href={speakerUrl()}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-primary shrink-0 px-5 py-2.5 text-sm"
-          >
+          <Link to="/join" className="btn-primary shrink-0 px-5 py-2.5 text-sm">
             <Icon name="mic" size={16} />
             Хочу выступить
-          </a>
+          </Link>
         </div>
       </section>
 

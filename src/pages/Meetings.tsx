@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import useSWR from 'swr'
 import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
@@ -6,7 +7,7 @@ import EventProgramCard from '../components/EventProgramCard'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import Pill from '../components/Pill'
-import { bookTitleById, fetchClaims, fetchEvents, speakerUrl } from '../lib/api'
+import { bookTitleById, fetchClaims, fetchEvents } from '../lib/api'
 import type { TopicClaim } from '../lib/api'
 import type { ClubEvent } from '../types'
 
@@ -53,15 +54,10 @@ function Meetings() {
           План ближайших встреч и архив с записями. Хочешь выступить — выбирай
           свободную тему из плана.
         </p>
-        <a
-          href={speakerUrl()}
-          target="_blank"
-          rel="noreferrer"
-          className="btn-primary mt-4 px-5 py-2.5 text-sm"
-        >
-          <Icon name="send" size={15} />
+        <Link to="/join" className="btn-primary mt-4 px-5 py-2.5 text-sm">
+          <Icon name="mic" size={15} />
           Стать спикером
-        </a>
+        </Link>
       </header>
 
       <div

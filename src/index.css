@@ -189,6 +189,30 @@ p {
     transform: scale(0.98);
   }
 
+  /* Поля форм (заявка на участие в клубе) */
+  .field {
+    @apply w-full rounded-btn border border-line bg-canvas px-3.5 py-2.5 text-sm text-ink;
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  .field::placeholder {
+    color: var(--color-ink-faint);
+  }
+
+  .field:hover {
+    border-color: var(--color-line-strong);
+  }
+
+  .field:focus {
+    border-color: var(--color-accent);
+  }
+
+  .field:disabled {
+    @apply cursor-not-allowed opacity-60;
+  }
+
   /* Текстовая ссылка «назад» */
   .link-back {
     @apply inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft;

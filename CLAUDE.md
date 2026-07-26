@@ -24,6 +24,11 @@ GitHub-репозитория `book-club-data` (организация `bookclub
 - `/book/:bookId/chapter/:chapterId` — Chapter (`chapterId` = slug папки, напр. `01-vvedenie`; темы главы рендерятся здесь же)
 - `/study` — StudyIndex (выбор книги для повторения; показываются только книги с карточками)
 - `/study/:bookId` — Study
+- `/join` — BecomeSpeaker: «Стать спикером» целиком в приложении. Требует входа
+  через Telegram. Участнику клуба показывает свободные темы плана с кнопкой
+  «Взять тему» (`POST /api/claim` бота), новому человеку — форму заявки на
+  участие (имя + рассказ о себе, `POST /api/membership`). Состояние общее
+  с ботом (D1), поэтому продолжить можно где удобно
 
 ## Источник данных
 База: `https://raw.githubusercontent.com/bookclubit/book-club-data/main/`
@@ -51,9 +56,13 @@ GitHub-репозитория `book-club-data` (организация `bookclub
 
 ## Телеграм-бот
 Бот клуба — `@bookclubfrontbot` (репозиторий `book-club-bot`, Cloudflare Workers).
-Регистрация спикером на открытые эфиры — диплинк `speakerRegistrationUrl(eventId)`
-(`https://t.me/bookclubfrontbot?start=speaker_<eventId>`); payload пока не
-обрабатывается ботом отдельно и приводит к обычному `/start`.
+Заявка на участие и выбор темы доклада живут в приложении (`/join`) — в бота
+не перекидываем; `speakerUrl()` остаётся вторичной ссылкой «то же самое в боте».
+
+**Темы докладов берут только участники клуба.** Кто участник, решает бот
+(`GET /api/membership`): каталог `speakers.json` по Telegram-нику или одобренная
+админом заявка. Новый человек может ходить на встречи и учить карточки сразу,
+а темы открываются после одобрения заявки.
 
 ## Дизайн-система
 - Токены только в `@theme` в `src/index.css`: цвета в oklch (тёплая «бумажная» палитра), радиусы `rounded-card`/`rounded-btn`, тени `shadow-card`/`shadow-lift`

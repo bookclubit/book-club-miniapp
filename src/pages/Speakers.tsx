@@ -41,7 +41,10 @@ function Speakers() {
         ) : speakers.error ? (
           <ErrorState message={(speakers.error as Error).message} />
         ) : ordered.length === 0 ? (
-          <EmptyState title="Спикеров пока нет" hint="Стать первым можно через бота — кнопка «Стать спикером»." />
+          <EmptyState
+            title="Спикеров пока нет"
+            hint="Стать первым можно на вкладке «Встречи» — кнопка «Стать спикером»."
+          />
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             {ordered.map((speaker, i) => (
