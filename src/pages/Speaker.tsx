@@ -7,8 +7,15 @@ import ErrorState from '../components/ErrorState'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import Pill from '../components/Pill'
-import { bookTitleById, fetchClaims, fetchEvents, fetchSpeakers, mediaUrl } from '../lib/api'
-import type { TopicClaim } from '../lib/api'
+import {
+  bookTitleById,
+  fetchAllChapters,
+  fetchClaims,
+  fetchEvents,
+  fetchSpeakers,
+  mediaUrl,
+} from '../lib/api'
+import type { ChapterTopics, TopicClaim } from '../lib/api'
 import { collectSpeakerTalks } from '../lib/speakers'
 import { SPEAKER_SOCIALS } from '../types'
 import type { ClubEvent, IndexSpeaker } from '../types'
@@ -20,10 +27,12 @@ function Speaker() {
   const events = useSWR<ClubEvent[]>('events', fetchEvents)
   // Ошибка заявок не роняет профиль: покажем только подтверждённые доклады.
   const claims = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
+  // Прошлые доклады записаны в темах глав — без них профиль пустой.
+  const chapters = useSWR<ChapterTopics[]>('chapters-all', fetchAllChapters)
   const [book, setBook] = useState<string>('all')
   const [year, setYear] = useState<string>('all')
 
-  if (speakers.isLoading || events.isLoading) {
+  if (speakers.isLoading || events.isLoading || chapters.isLoading) {
     return <Centered><Loading label="Загружаем профиль…" /></Centered>
   }
   if (speakers.error) {
@@ -43,7 +52,12 @@ function Speaker() {
     )
   }
 
-  const talks = collectSpeakerTalks(events.data ?? [], speaker, claims.data ?? [])
+  const talks = collectSpeakerTalks(
+    events.data ?? [],
+    speaker,
+    claims.data ?? [],
+    chapters.data ?? [],
+  )
 
   // Книги, в которых спикер участвовал (для фильтра).
   const books: Array<{ id: string; title: string }> = []
@@ -53,15 +67,16 @@ function Speaker() {
     }
   }
 
-  // Годы докладов (для фильтра) — от новых к старым.
-  const years = [...new Set(talks.map((t) => t.date.slice(0, 4)))].sort((a, b) =>
-    b.localeCompare(a),
-  )
+  // Годы докладов (для фильтра) — от новых к старым. У доклада без встречи
+  // даты нет: такой в фильтр по году не попадает.
+  const years = [
+    ...new Set(talks.map((t) => t.date?.slice(0, 4)).filter((y): y is string => Boolean(y))),
+  ].sort((a, b) => b.localeCompare(a))
 
   const visible = talks.filter(
     (t) =>
       (book === 'all' || t.bookId === book) &&
-      (year === 'all' || t.date.slice(0, 4) === year),
+      (year === 'all' || t.date?.slice(0, 4) === year),
   )
 
   const socials = SPEAKER_SOCIALS.map((s) => ({
@@ -157,7 +172,11 @@ function Speaker() {
                 >
                   <div className="flex items-baseline justify-between gap-3">
                     <span className="text-xs font-semibold uppercase tracking-widest text-ink-faint">
-                      {formatTalkDate(t.date)}
+                      {t.date
+                        ? formatTalkDate(t.date)
+                        : t.chapterOrder
+                          ? `Глава ${t.chapterOrder}`
+                          : 'Доклад'}
                     </span>
                     <div className="flex shrink-0 items-center gap-2">
                       {t.pending ? (

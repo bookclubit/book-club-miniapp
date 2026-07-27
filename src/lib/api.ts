@@ -199,6 +199,52 @@ export async function fetchEventChapterTopics(
   }
 }
 
+// Глава с темами и контекстом книги — для профиля спикера: доклады старых глав
+// живут только в chapter.json (события за них в клубе не заводили).
+export interface ChapterTopics {
+  bookFolder: string
+  chapterSlug: string
+  chapterTitle: string
+  chapterOrder: number
+  topics: Topic[]
+}
+
+/**
+ * Разобранные главы всех книг клуба. Ключ SWR: 'chapters-all'.
+ * Пустые заготовки (в реестре `topics: 0`) не запрашиваем, недоступную главу
+ * пропускаем — профиль спикера не должен падать из-за одного файла.
+ */
+export async function fetchAllChapters(): Promise<ChapterTopics[]> {
+  const index = await fetchIndex()
+  const wanted = index.books.flatMap((book) =>
+    book.chapters.filter((c) => c.topics > 0).map((c) => ({ book, chapter: c })),
+  )
+  const loaded = await Promise.all(
+    wanted.map(async ({ book, chapter }): Promise<ChapterTopics | null> => {
+      try {
+        const data = await fetcher<Chapter>(chapterUrl(book.folder, chapter.slug))
+        return {
+          bookFolder: book.folder,
+          chapterSlug: chapter.slug,
+          chapterTitle: data.title,
+          chapterOrder: data.order,
+          topics: data.topics,
+        }
+      } catch {
+        return null
+      }
+    }),
+  )
+  return loaded.filter((c): c is ChapterTopics => c !== null)
+}
+
+// Имя папки книги по id из meta (в событиях и заявках книга указана как id,
+// в главах и маршрутах — папкой). Нужен, чтобы фильтр по книге не двоился.
+export function bookFolderById(bookId?: string): string | undefined {
+  if (!bookId) return undefined
+  return contentIndex?.books.find((b) => b.id === bookId || b.folder === bookId)?.folder
+}
+
 // Аватарка спикера по имени или алиасу (в темах спикер указан по имени).
 // Реестр к моменту вызова уже загружен страницей; иначе просто без аватарки.
 export function speakerAvatar(name: string): string | undefined {
