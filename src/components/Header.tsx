@@ -38,9 +38,12 @@ function Header() {
           Книжный клуб
         </Link>
 
+        {/* Показано по умолчанию, спрятано на мобильных (там BottomNav).
+            Порядок важен: если браузер не понимает медиазапрос, навигация
+            останется видимой, а не исчезнет — раньше было наоборот. */}
         <nav
           aria-label="Основная навигация"
-          className="hidden flex-1 gap-5 sm:flex"
+          className="flex flex-1 gap-5 max-sm:hidden"
         >
           {NAV.map(({ to, label, end }) => (
             <NavLink key={to} to={to} end={end} className={navClass}>
