@@ -11,12 +11,14 @@ const NAV = [
   { to: '/study', label: 'Карточки', end: false },
 ]
 
+// В браузере это единственная навигация (нижняя таб-панель — только на
+// мобильных), поэтому неактивные пункты держим читаемым ink-soft, а не faint.
 function navClass({ isActive }: { isActive: boolean }): string {
   return [
     'border-b-2 pb-0.5 text-sm font-medium transition-colors duration-200',
     isActive
       ? 'border-accent text-ink'
-      : 'border-transparent text-ink-faint hover:text-ink',
+      : 'border-transparent text-ink-soft hover:text-ink',
   ].join(' ')
 }
 
