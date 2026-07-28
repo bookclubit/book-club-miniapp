@@ -14,6 +14,7 @@ import {
   readingProgress,
 } from '../lib/api'
 import type { BookWithFolder } from '../lib/api'
+import { authorKey } from '../lib/authors'
 import { plural } from '../lib/format'
 import type { ChapterWithSlug, Flashcard } from '../types'
 
@@ -77,9 +78,15 @@ function Book() {
                   </p>
                 ) : null}
 
+                {/* Автор — ссылка на его страницу: у одного человека может быть
+                    несколько книг клуба. */}
                 <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
                   {meta.authors.map((author) => (
-                    <span key={author.name} className="flex items-center gap-2">
+                    <Link
+                      key={author.name}
+                      to={`/author/${authorKey(author)}`}
+                      className="group flex items-center gap-2"
+                    >
                       {author.avatar ? (
                         <img
                           src={mediaUrl(author.avatar)}
@@ -90,8 +97,10 @@ function Book() {
                           className="h-7 w-7 rounded-full object-cover"
                         />
                       ) : null}
-                      <span className="text-sm font-medium text-ink-soft">{author.name}</span>
-                    </span>
+                      <span className="text-sm font-medium text-ink-soft transition-colors duration-200 group-hover:text-accent">
+                        {author.name}
+                      </span>
+                    </Link>
                   ))}
                 </div>
 

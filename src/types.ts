@@ -15,6 +15,12 @@ export const BOOK_CATEGORIES: Array<{ id: BookCategory; label: string }> = [
 ]
 
 export interface Author {
+  /**
+   * Стабильный kebab-case id: связывает книги одного автора (страница автора).
+   * У старых записей может отсутствовать — тогда ключ выводится из аватарки
+   * или имени (`authorKey` в lib/authors.ts).
+   */
+  id?: string
   name: string
   avatar?: string // путь относительно корня book-club-data, напр. /media/authors/x.webp
   /** Ссылка на автора (сайт/профиль) — используется в презентациях talks. */
@@ -222,10 +228,25 @@ export interface IndexSpeaker {
   socials?: Partial<Record<SpeakerSocial, string>>
 }
 
+/**
+ * Автор в реестре: генератор собирает его из авторов книг (`meta.json`),
+ * `books` — папки книг этого автора. Приложение считает авторов само из уже
+ * загруженных meta.json (`collectAuthors`), поэтому поле необязательное —
+ * оно нужно CMS, чтобы предлагать выбор из существующих авторов.
+ */
+export interface IndexAuthor {
+  id: string
+  name: string
+  avatar?: string
+  url?: string
+  books: string[]
+}
+
 export interface ContentIndex {
   version: number
   active_book: string
   books: IndexBook[]
+  authors?: IndexAuthor[]
   events: string[] // пути относительно events/
   speakers: IndexSpeaker[]
 }

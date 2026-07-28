@@ -8,6 +8,7 @@ import { AuthProvider } from './lib/useAuth'
 
 // Страницы грузятся лениво (code-splitting): каждая — отдельный чанк.
 const Account = lazy(() => import('./pages/Account'))
+const Author = lazy(() => import('./pages/Author'))
 const BecomeSpeaker = lazy(() => import('./pages/BecomeSpeaker'))
 const Book = lazy(() => import('./pages/Book'))
 const Books = lazy(() => import('./pages/Books'))
@@ -51,6 +52,7 @@ function AnimatedRoutes() {
             <Route path="/speaker/:id" element={<Speaker />} />
             <Route path="/account" element={<Account />} />
             <Route path="/book/:bookId" element={<Book />} />
+            <Route path="/author/:authorId" element={<Author />} />
             <Route path="/book/:bookId/chapter/:chapterId" element={<Chapter />} />
             <Route path="/study" element={<StudyIndex />} />
             <Route path="/study/:bookId" element={<Study />} />

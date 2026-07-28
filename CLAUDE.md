@@ -21,6 +21,9 @@ GitHub-репозитория `book-club-data` (организация `bookclub
 - `/` — Home (книги со статусом `reading` + встречи)
 - `/books` — Books (все книги с прогрессом чтения)
 - `/book/:bookId` — Book (`bookId` = имя папки книги, напр. `docker-up-and-running`)
+- `/author/:authorId` — Author: все книги автора. Каталога авторов в данных нет
+  (автор живёт в `meta.json` своих книг), поэтому список считается из уже
+  загруженных мет — `collectAuthors` в `lib/authors.ts`, ключ SWR тот же `books`
 - `/book/:bookId/chapter/:chapterId` — Chapter (`chapterId` = slug папки, напр. `01-vvedenie`; темы главы рендерятся здесь же)
 - `/study` — StudyIndex (выбор книги для повторения; показываются только книги с карточками)
 - `/study/:bookId` — Study
@@ -32,7 +35,10 @@ GitHub-репозитория `book-club-data` (организация `bookclub
 
 ## Источник данных
 База: `https://raw.githubusercontent.com/bookclubit/book-club-data/main/`
-- `books/{folder}/meta.json` — мета книги; `authors` — объекты `{name, avatar}`; `id` в meta может отличаться от имени папки, маршруты строятся по имени папки
+- `books/{folder}/meta.json` — мета книги; `authors` — объекты `{id, name, avatar, url}`,
+  где `id` связывает книги одного автора (ключ маршрута `/author/:authorId`;
+  у старых записей выводится из аватарки — `authorKey` в `lib/authors.ts`);
+  `id` книги в meta может отличаться от имени папки, маршруты строятся по имени папки
 - `books/{folder}/chapters/{chapterSlug}/chapter.json` — глава целиком, вместе с темами:
   `topics: [{id, title, speakers[], video_youtube, video_vk, presentation, resources[]}]`.
   У темы нет ни отдельного файла, ни текста: в UI это название, иконка с именем
