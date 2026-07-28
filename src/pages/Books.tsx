@@ -3,8 +3,8 @@ import useSWR from 'swr'
 import BookCard from '../components/BookCard'
 import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
+import { ALL, FilterBar, FilterSelect } from '../components/Filters'
 import Loading from '../components/Loading'
-import Pill from '../components/Pill'
 import { fetchBooks } from '../lib/api'
 import type { BookWithFolder } from '../lib/api'
 import { BOOK_CATEGORIES } from '../types'
@@ -13,10 +13,10 @@ import type { BookCategory } from '../types'
 // Вкладка «Книги»: все книги клуба с прогрессом чтения и фильтром по категориям.
 function Books() {
   const { data, error, isLoading } = useSWR<BookWithFolder[]>('books', fetchBooks)
-  const [filter, setFilter] = useState<'all' | BookCategory>('all')
+  const [filter, setFilter] = useState<typeof ALL | BookCategory>(ALL)
 
   const books = data ?? []
-  const visible = filter === 'all' ? books : books.filter((b) => b.meta.category === filter)
+  const visible = filter === ALL ? books : books.filter((b) => b.meta.category === filter)
   const countBy = (cat: BookCategory) => books.filter((b) => b.meta.category === cat).length
 
   return (
@@ -27,15 +27,19 @@ function Books() {
       </header>
 
       {books.length > 0 && (
-        <div className="reveal mt-6 flex flex-wrap gap-2" style={{ '--reveal-delay': '60ms' } as React.CSSProperties}>
-          <Pill active={filter === 'all'} onClick={() => setFilter('all')}>
-            Все книги
-          </Pill>
-          {BOOK_CATEGORIES.filter((c) => countBy(c.id) > 0).map((c) => (
-            <Pill key={c.id} active={filter === c.id} onClick={() => setFilter(c.id)}>
-              {c.label}
-            </Pill>
-          ))}
+        <div className="reveal mt-6" style={{ '--reveal-delay': '60ms' } as React.CSSProperties}>
+          <FilterBar onReset={filter === ALL ? undefined : () => setFilter(ALL)}>
+            <FilterSelect
+              label="Категория книг"
+              allLabel="Все книги"
+              value={filter}
+              options={BOOK_CATEGORIES.filter((c) => countBy(c.id) > 0).map((c) => ({
+                value: c.id,
+                label: c.label,
+              }))}
+              onChange={setFilter}
+            />
+          </FilterBar>
         </div>
       )}
 

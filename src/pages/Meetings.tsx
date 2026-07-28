@@ -4,6 +4,7 @@ import useSWR from 'swr'
 import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import EventProgramCard from '../components/EventProgramCard'
+import { ALL, FilterBar, FilterSelect } from '../components/Filters'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import Pill from '../components/Pill'
@@ -21,9 +22,9 @@ function Meetings() {
   // Ошибка заявок не роняет страницу: темы покажем свободными с мелкой подписью.
   const claims = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
   const [tab, setTab] = useState<Tab>('plan')
-  const [book, setBook] = useState<string>('all')
-  const [type, setType] = useState<'all' | EventType>('all')
-  const [year, setYear] = useState<string>('all')
+  const [book, setBook] = useState<string>(ALL)
+  const [type, setType] = useState<typeof ALL | EventType>(ALL)
+  const [year, setYear] = useState<string>(ALL)
 
   // Завершённые (явный флаг) — в архив (свежие сверху), остальные — в план
   // (ближайшие сверху). Порядок задаём явно, не полагаясь на порядок загрузки.
@@ -53,18 +54,23 @@ function Meetings() {
 
   const visible = tabEvents.filter(
     (e) =>
-      (book === 'all' || e.book_id === book) &&
-      (type === 'all' || e.type === type) &&
-      (year === 'all' || e.date.startsWith(year)),
+      (book === ALL || e.book_id === book) &&
+      (type === ALL || e.type === type) &&
+      (year === ALL || e.date.startsWith(year)),
   )
-  const filtered = book !== 'all' || type !== 'all' || year !== 'all'
+  const filtered = book !== ALL || type !== ALL || year !== ALL
+  const hasFilters = types.length > 1 || books.length > 1 || years.length > 1
+
+  function resetFilters() {
+    setBook(ALL)
+    setType(ALL)
+    setYear(ALL)
+  }
 
   function switchTab(next: Tab) {
     setTab(next)
     // Фильтры сбрасываем: у плана и архива разные книги, типы и годы.
-    setBook('all')
-    setType('all')
-    setYear('all')
+    resetFilters()
   }
 
   return (
@@ -93,51 +99,33 @@ function Meetings() {
         </Pill>
       </div>
 
-      {/* Фильтры: каждый ряд появляется, только если выбирать есть из чего.
-          Первая кнопка ряда называет измерение — отдельные подписи не нужны. */}
-      <div
-        className="reveal mt-4 space-y-2"
-        style={{ '--reveal-delay': '80ms' } as React.CSSProperties}
-      >
-        {types.length > 1 ? (
-          <div className="flex flex-wrap gap-2">
-            <Pill size="sm" active={type === 'all'} onClick={() => setType('all')}>
-              Все встречи
-            </Pill>
-            {types.map((t) => (
-              <Pill key={t} size="sm" active={type === t} onClick={() => setType(t)}>
-                {EVENT_TYPE_LABEL[t]}
-              </Pill>
-            ))}
-          </div>
-        ) : null}
-
-        {books.length > 1 ? (
-          <div className="flex flex-wrap gap-2">
-            <Pill size="sm" active={book === 'all'} onClick={() => setBook('all')}>
-              Все книги
-            </Pill>
-            {books.map((b) => (
-              <Pill key={b.id} size="sm" active={book === b.id} onClick={() => setBook(b.id)}>
-                {b.title}
-              </Pill>
-            ))}
-          </div>
-        ) : null}
-
-        {years.length > 1 ? (
-          <div className="flex flex-wrap gap-2">
-            <Pill size="sm" active={year === 'all'} onClick={() => setYear('all')}>
-              Все годы
-            </Pill>
-            {years.map((y) => (
-              <Pill key={y} size="sm" active={year === y} onClick={() => setYear(y)}>
-                {y}
-              </Pill>
-            ))}
-          </div>
-        ) : null}
-      </div>
+      {hasFilters ? (
+        <div className="reveal mt-4" style={{ '--reveal-delay': '80ms' } as React.CSSProperties}>
+          <FilterBar onReset={filtered ? resetFilters : undefined}>
+            <FilterSelect
+              label="Тип встречи"
+              allLabel="Все встречи"
+              value={type}
+              options={types.map((t) => ({ value: t, label: EVENT_TYPE_LABEL[t] }))}
+              onChange={setType}
+            />
+            <FilterSelect
+              label="Книга"
+              allLabel="Все книги"
+              value={book}
+              options={books.map((b) => ({ value: b.id, label: b.title }))}
+              onChange={setBook}
+            />
+            <FilterSelect
+              label="Год"
+              allLabel="Все годы"
+              value={year}
+              options={years.map((y) => ({ value: y, label: y }))}
+              onChange={setYear}
+            />
+          </FilterBar>
+        </div>
+      ) : null}
 
       <div className="mt-8">
         {isLoading ? (
