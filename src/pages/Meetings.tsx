@@ -9,8 +9,7 @@ import Loading from '../components/Loading'
 import Pill from '../components/Pill'
 import { bookTitleById, fetchClaims, fetchEvents } from '../lib/api'
 import type { TopicClaim } from '../lib/api'
-import { EVENT_TYPE_LABEL } from '../types'
-import type { ClubEvent, EventType } from '../types'
+import type { ClubEvent } from '../types'
 
 type Tab = 'plan' | 'archive'
 
@@ -22,7 +21,6 @@ function Meetings() {
   const claims = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
   const [tab, setTab] = useState<Tab>('plan')
   const [book, setBook] = useState<string>('all')
-  const [type, setType] = useState<'all' | EventType>('all')
   const [year, setYear] = useState<string>('all')
 
   // Завершённые (явный флаг) — в архив (свежие сверху), остальные — в план
@@ -43,9 +41,6 @@ function Meetings() {
       books.push({ id: e.book_id, title: bookTitleById(e.book_id) ?? e.book_id })
     }
   }
-  const types = (['live-talk', 'closed-chapter'] as EventType[]).filter((t) =>
-    tabEvents.some((e) => e.type === t),
-  )
   // Годы — от новых к старым: в архиве это основной способ найти встречу.
   const years = [...new Set(tabEvents.map((e) => e.date.slice(0, 4)))].sort((a, b) =>
     b.localeCompare(a),
@@ -54,16 +49,14 @@ function Meetings() {
   const visible = tabEvents.filter(
     (e) =>
       (book === 'all' || e.book_id === book) &&
-      (type === 'all' || e.type === type) &&
       (year === 'all' || e.date.startsWith(year)),
   )
-  const filtered = book !== 'all' || type !== 'all' || year !== 'all'
+  const filtered = book !== 'all' || year !== 'all'
 
   function switchTab(next: Tab) {
     setTab(next)
-    // Фильтры сбрасываем: у плана и архива разные книги, типы и годы.
+    // Фильтры сбрасываем: у плана и архива разные книги и годы.
     setBook('all')
-    setType('all')
     setYear('all')
   }
 
@@ -99,19 +92,6 @@ function Meetings() {
         className="reveal mt-4 space-y-2"
         style={{ '--reveal-delay': '80ms' } as React.CSSProperties}
       >
-        {types.length > 1 ? (
-          <div className="flex flex-wrap gap-2">
-            <Pill size="sm" active={type === 'all'} onClick={() => setType('all')}>
-              Все встречи
-            </Pill>
-            {types.map((t) => (
-              <Pill key={t} size="sm" active={type === t} onClick={() => setType(t)}>
-                {EVENT_TYPE_LABEL[t]}
-              </Pill>
-            ))}
-          </div>
-        ) : null}
-
         {books.length > 1 ? (
           <div className="flex flex-wrap gap-2">
             <Pill size="sm" active={book === 'all'} onClick={() => setBook('all')}>
@@ -150,7 +130,7 @@ function Meetings() {
           filtered ? (
             <EmptyState
               title="Под фильтр ничего не подошло"
-              hint="Попробуйте выбрать другой год, книгу или тип встречи."
+              hint="Попробуйте выбрать другой год или книгу."
             />
           ) : (
             <EmptyState
