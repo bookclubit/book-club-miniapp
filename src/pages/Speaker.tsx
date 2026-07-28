@@ -4,9 +4,9 @@ import useSWR from 'swr'
 import BrandIcon from '../components/BrandIcon'
 import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
-import { ALL, FilterBar, FilterSelect } from '../components/Filters'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
+import Pill from '../components/Pill'
 import {
   bookTitleById,
   fetchAllChapters,
@@ -29,8 +29,8 @@ function Speaker() {
   const claims = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
   // Прошлые доклады записаны в темах глав — без них профиль пустой.
   const chapters = useSWR<ChapterTopics[]>('chapters-all', fetchAllChapters)
-  const [book, setBook] = useState<string>(ALL)
-  const [year, setYear] = useState<string>(ALL)
+  const [book, setBook] = useState<string>('all')
+  const [year, setYear] = useState<string>('all')
 
   if (speakers.isLoading || events.isLoading || chapters.isLoading) {
     return <Centered><Loading label="Загружаем профиль…" /></Centered>
@@ -75,10 +75,9 @@ function Speaker() {
 
   const visible = talks.filter(
     (t) =>
-      (book === ALL || t.bookId === book) &&
-      (year === ALL || t.date?.slice(0, 4) === year),
+      (book === 'all' || t.bookId === book) &&
+      (year === 'all' || t.date?.slice(0, 4) === year),
   )
-  const filtered = book !== ALL || year !== ALL
 
   const socials = SPEAKER_SOCIALS.map((s) => ({
     ...s,
@@ -134,46 +133,35 @@ function Speaker() {
           </p>
         ) : null}
 
-        {books.length > 1 || years.length > 1 ? (
-          <div className="mt-4">
-            <FilterBar
-              onReset={
-                book === ALL && year === ALL
-                  ? undefined
-                  : () => {
-                      setBook(ALL)
-                      setYear(ALL)
-                    }
-              }
-            >
-              <FilterSelect
-                label="Книга"
-                allLabel="Все книги"
-                value={book}
-                options={books.map((b) => ({ value: b.id, label: b.title }))}
-                onChange={setBook}
-              />
-              <FilterSelect
-                label="Год"
-                allLabel="Все годы"
-                value={year}
-                options={years.map((y) => ({ value: y, label: y }))}
-                onChange={setYear}
-              />
-            </FilterBar>
+        {books.length > 1 ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Pill active={book === 'all'} onClick={() => setBook('all')}>
+              Все книги
+            </Pill>
+            {books.map((b) => (
+              <Pill key={b.id} active={book === b.id} onClick={() => setBook(b.id)}>
+                {b.title}
+              </Pill>
+            ))}
+          </div>
+        ) : null}
+
+        {years.length > 1 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Pill active={year === 'all'} onClick={() => setYear('all')}>
+              Все годы
+            </Pill>
+            {years.map((y) => (
+              <Pill key={y} active={year === y} onClick={() => setYear(y)}>
+                {y}
+              </Pill>
+            ))}
           </div>
         ) : null}
 
         <div className="mt-6">
           {visible.length === 0 ? (
-            filtered ? (
-              <EmptyState
-                title="Под фильтр ничего не подошло"
-                hint="Попробуйте выбрать другую книгу или год."
-              />
-            ) : (
-              <EmptyState title="Докладов пока нет" hint="Скоро появятся выступления." />
-            )
+            <EmptyState title="Докладов пока нет" hint="Скоро появятся выступления." />
           ) : (
             <ul className="space-y-4">
               {visible.map((t, i) => (

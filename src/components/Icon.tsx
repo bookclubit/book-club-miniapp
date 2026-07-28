@@ -19,7 +19,6 @@ export type IconName =
   | 'home'
   | 'users'
   | 'mic'
-  | 'chevron-down'
 
 const PATHS: Record<IconName, React.ReactNode> = {
   'arrow-left': <path d="M15.5 19 8 12l7.5-7" />,
@@ -101,7 +100,6 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" />
     </>
   ),
-  'chevron-down': <path d="M5 9l7 7 7-7" />,
 }
 
 interface IconProps {

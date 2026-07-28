@@ -227,23 +227,6 @@ p {
     @apply cursor-not-allowed opacity-60;
   }
 
-  /* Фильтр-список (components/Filters.tsx). Выбранный отмечен акцентной
-     рамкой, а не заливкой: три залитых чипа в ряд перекрикивали список. */
-  .filter-select {
-    @apply max-w-52 appearance-none truncate rounded-btn border border-line bg-surface py-1.5 pl-2.5 pr-7 text-sm font-medium text-ink-soft;
-    transition: border-color 0.2s ease, color 0.2s ease;
-  }
-
-  .filter-select:hover {
-    border-color: var(--color-line-strong);
-    color: var(--color-ink);
-  }
-
-  .filter-select-on {
-    border-color: var(--color-accent);
-    color: var(--color-ink);
-  }
-
   /* Текстовая ссылка «назад» */
   .link-back {
     @apply inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft;
