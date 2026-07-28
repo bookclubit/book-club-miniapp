@@ -122,7 +122,8 @@ function Home() {
           ) : reading.length === 0 ? (
             <EmptyState title="Сейчас ничего не читаем" hint="Следующая книга — скоро." />
           ) : (
-            <div className="grid gap-4 lg:grid-cols-2">
+            // auto-rows-fr — карточки книг одной высоты во всей сетке.
+            <div className="grid auto-rows-fr gap-4 lg:grid-cols-2">
               {reading.map(({ folder, meta }, i) => (
                 <div
                   key={folder}

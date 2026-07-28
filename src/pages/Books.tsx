@@ -49,7 +49,8 @@ function Books() {
         ) : visible.length === 0 ? (
           <EmptyState title="В этой категории пока пусто" hint="Загляните в другие вкладки." />
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
+          // auto-rows-fr — все карточки одной высоты, а не только соседи по ряду.
+          <div className="grid auto-rows-fr gap-4 lg:grid-cols-2">
             {visible.map(({ folder, meta }, i) => (
               <div
                 key={folder}

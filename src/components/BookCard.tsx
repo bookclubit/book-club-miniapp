@@ -21,9 +21,11 @@ function BookCard({ folder, book }: BookCardProps) {
   const percent = readingProgress(folder, book.total_chapters)
 
   return (
+    // h-full — карточки в сетке одной высоты: заголовки книг занимают то одну
+    // строку, то две, и без этого соседи в ряду разъезжаются.
     <Link
       to={`/book/${folder}`}
-      className="card card-hover group flex gap-5 p-4 sm:p-5"
+      className="card card-hover group flex h-full gap-5 p-4 sm:p-5"
     >
       {cover ? (
         <img
@@ -43,9 +45,10 @@ function BookCard({ folder, book }: BookCardProps) {
         </div>
       )}
 
-      <div className="min-w-0 py-0.5">
+      <div className="flex min-w-0 flex-col py-0.5">
+        {/* self-start — в колонке-флексе плашка иначе растянулась бы во всю ширину. */}
         <span
-          className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${status.className}`}
+          className={`self-start rounded-full px-2.5 py-0.5 text-xs font-semibold ${status.className}`}
         >
           {status.label}
         </span>
@@ -60,7 +63,8 @@ function BookCard({ folder, book }: BookCardProps) {
           {book.description}
         </p>
 
-        <div className="mt-3 max-w-56">
+        {/* Прогресс прижат к низу карточки — у соседей в ряду он на одной линии. */}
+        <div className="mt-auto max-w-56 pt-3">
           <div className="flex items-center justify-between text-xs text-ink-faint">
             <span>
               {book.total_chapters} {plural(book.total_chapters, 'глава', 'главы', 'глав')}
