@@ -163,6 +163,8 @@ export interface Flashcard {
   // Поля для type === 'command'
   command?: string
   result?: string
+  /** Пример к ответу — необязателен, показывается под ним. */
+  example?: string
 }
 
 // --- Прогресс изучения (SM-2), хранится в localStorage ---

@@ -37,7 +37,9 @@ GitHub-репозитория `book-club-data` (организация `bookclub
   `topics: [{id, title, speakers[], video_youtube, video_vk, presentation, resources[]}]`.
   У темы нет ни отдельного файла, ни текста: в UI это название, иконка с именем
   спикера и ссылки на материалы (`components/TopicSection.tsx`)
-- `books/{folder}/flashcards.json` — карточки (может отсутствовать — тогда 404 трактуется как пустой список)
+- `books/{folder}/flashcards.json` — карточки (может отсутствовать — тогда 404 трактуется как пустой список).
+  У карточки есть необязательный `example` — пример к ответу; показывается на
+  обратной стороне под ответом моноширинным блоком (`components/FlashCard.tsx`)
 - `events/closed-chapters/*.json` и `events/live-talks/*.json` — встречи клуба
 - Пути к изображениям в данных относительные (`/media/...`) — оборачивать в `mediaUrl()` из `api.ts`
 

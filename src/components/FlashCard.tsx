@@ -53,6 +53,7 @@ function Face({
 function FlashCard({ card, flipped, onFlip }: FlashCardProps) {
   const front = card.type === 'command' ? card.command : card.question
   const back = card.type === 'command' ? card.result : card.answer
+  const example = card.example?.trim()
 
   return (
     <button
@@ -75,7 +76,21 @@ function FlashCard({ card, flipped, onFlip }: FlashCardProps) {
         </Face>
 
         <Face card={card} side="back">
-          <p className="max-w-prose text-[15px] leading-relaxed text-ink-soft">{back}</p>
+          <div className="max-w-prose">
+            <p className="text-[15px] leading-relaxed text-ink-soft">{back}</p>
+            {/* Пример — необязательное поле карточки: тише ответа, но моноширинный,
+                чтобы код и вывод команды читались как код. */}
+            {example ? (
+              <div className="mt-4 rounded-btn border border-line bg-canvas px-3.5 py-2.5 text-left">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-faint">
+                  Пример
+                </p>
+                <p className="mt-1.5 whitespace-pre-wrap font-mono text-[13px] leading-relaxed text-ink-soft">
+                  {example}
+                </p>
+              </div>
+            ) : null}
+          </div>
         </Face>
       </div>
     </button>
