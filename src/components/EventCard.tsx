@@ -2,6 +2,7 @@ import { bookTitleById, mediaUrl } from '../lib/api'
 import { formatEventDate, formatWeekday, isPast } from '../lib/format'
 import ClubAvatar from './ClubAvatar'
 import Icon from './Icon'
+import { EVENT_TYPE_LABEL } from '../types'
 import type { ClubEvent } from '../types'
 
 // Слот темы главы для встречи-«доклады»: занят спикером или свободен.
@@ -24,7 +25,7 @@ interface EventCardProps {
 // У будущих — «Пойду» и ссылки; у прошедших/завершённых — записи трансляций.
 function EventCard({ event, topicSlots, topicSlotsNote }: EventCardProps) {
   const done = event.finished || isPast(event.date)
-  const kind = event.type === 'closed-chapter' ? 'Открытое обсуждение' : 'Доклады'
+  const kind = EVENT_TYPE_LABEL[event.type]
   const streamName = event.stream ? `Книжный клуб ${event.stream}` : null
   const bookTitle = bookTitleById(event.book_id)
   const moderators = event.type === 'closed-chapter' ? (event.moderators ?? []) : []

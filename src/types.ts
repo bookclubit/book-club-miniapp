@@ -141,6 +141,14 @@ export interface LiveTalkEvent {
 
 export type ClubEvent = ClosedChapterEvent | LiveTalkEvent
 
+export type EventType = ClubEvent['type']
+
+/** Как встречи называются в интерфейсе — одинаково в карточках и фильтрах. */
+export const EVENT_TYPE_LABEL: Record<EventType, string> = {
+  'live-talk': 'Доклады',
+  'closed-chapter': 'Открытое обсуждение',
+}
+
 export type FlashcardType = 'qa' | 'command'
 export type Difficulty = 'easy' | 'medium' | 'hard'
 

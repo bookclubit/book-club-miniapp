@@ -9,7 +9,8 @@ import Loading from '../components/Loading'
 import Pill from '../components/Pill'
 import { bookTitleById, fetchClaims, fetchEvents } from '../lib/api'
 import type { TopicClaim } from '../lib/api'
-import type { ClubEvent } from '../types'
+import { EVENT_TYPE_LABEL } from '../types'
+import type { ClubEvent, EventType } from '../types'
 
 type Tab = 'plan' | 'archive'
 
@@ -21,6 +22,8 @@ function Meetings() {
   const claims = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
   const [tab, setTab] = useState<Tab>('plan')
   const [book, setBook] = useState<string>('all')
+  const [type, setType] = useState<'all' | EventType>('all')
+  const [year, setYear] = useState<string>('all')
 
   // Завершённые (явный флаг) — в архив (свежие сверху), остальные — в план
   // (ближайшие сверху). Порядок задаём явно, не полагаясь на порядок загрузки.
@@ -32,18 +35,36 @@ function Meetings() {
     .sort((a, b) => b.date.localeCompare(a.date))
   const tabEvents = tab === 'plan' ? plan : archive
 
-  // Книги, встречающиеся в текущей вкладке — для фильтра-чипов.
+  // Варианты фильтров считаем по всей вкладке, а не по отфильтрованному списку:
+  // иначе выбор одного фильтра прятал бы кнопки остальных.
   const books: Array<{ id: string; title: string }> = []
   for (const e of tabEvents) {
     if (e.book_id && !books.some((b) => b.id === e.book_id)) {
       books.push({ id: e.book_id, title: bookTitleById(e.book_id) ?? e.book_id })
     }
   }
-  const visible = book === 'all' ? tabEvents : tabEvents.filter((e) => e.book_id === book)
+  const types = (['live-talk', 'closed-chapter'] as EventType[]).filter((t) =>
+    tabEvents.some((e) => e.type === t),
+  )
+  // Годы — от новых к старым: в архиве это основной способ найти встречу.
+  const years = [...new Set(tabEvents.map((e) => e.date.slice(0, 4)))].sort((a, b) =>
+    b.localeCompare(a),
+  )
+
+  const visible = tabEvents.filter(
+    (e) =>
+      (book === 'all' || e.book_id === book) &&
+      (type === 'all' || e.type === type) &&
+      (year === 'all' || e.date.startsWith(year)),
+  )
+  const filtered = book !== 'all' || type !== 'all' || year !== 'all'
 
   function switchTab(next: Tab) {
     setTab(next)
-    setBook('all') // фильтр сбрасываем — набор книг у вкладок разный
+    // Фильтры сбрасываем: у плана и архива разные книги, типы и годы.
+    setBook('all')
+    setType('all')
+    setYear('all')
   }
 
   return (
@@ -72,21 +93,51 @@ function Meetings() {
         </Pill>
       </div>
 
-      {books.length > 1 ? (
-        <div
-          className="reveal mt-4 flex flex-wrap gap-2"
-          style={{ '--reveal-delay': '80ms' } as React.CSSProperties}
-        >
-          <Pill size="sm" active={book === 'all'} onClick={() => setBook('all')}>
-            Все книги
-          </Pill>
-          {books.map((b) => (
-            <Pill key={b.id} size="sm" active={book === b.id} onClick={() => setBook(b.id)}>
-              {b.title}
+      {/* Фильтры: каждый ряд появляется, только если выбирать есть из чего.
+          Первая кнопка ряда называет измерение — отдельные подписи не нужны. */}
+      <div
+        className="reveal mt-4 space-y-2"
+        style={{ '--reveal-delay': '80ms' } as React.CSSProperties}
+      >
+        {types.length > 1 ? (
+          <div className="flex flex-wrap gap-2">
+            <Pill size="sm" active={type === 'all'} onClick={() => setType('all')}>
+              Все встречи
             </Pill>
-          ))}
-        </div>
-      ) : null}
+            {types.map((t) => (
+              <Pill key={t} size="sm" active={type === t} onClick={() => setType(t)}>
+                {EVENT_TYPE_LABEL[t]}
+              </Pill>
+            ))}
+          </div>
+        ) : null}
+
+        {books.length > 1 ? (
+          <div className="flex flex-wrap gap-2">
+            <Pill size="sm" active={book === 'all'} onClick={() => setBook('all')}>
+              Все книги
+            </Pill>
+            {books.map((b) => (
+              <Pill key={b.id} size="sm" active={book === b.id} onClick={() => setBook(b.id)}>
+                {b.title}
+              </Pill>
+            ))}
+          </div>
+        ) : null}
+
+        {years.length > 1 ? (
+          <div className="flex flex-wrap gap-2">
+            <Pill size="sm" active={year === 'all'} onClick={() => setYear('all')}>
+              Все годы
+            </Pill>
+            {years.map((y) => (
+              <Pill key={y} size="sm" active={year === y} onClick={() => setYear(y)}>
+                {y}
+              </Pill>
+            ))}
+          </div>
+        ) : null}
+      </div>
 
       <div className="mt-8">
         {isLoading ? (
@@ -94,10 +145,19 @@ function Meetings() {
         ) : error ? (
           <ErrorState message={(error as Error).message} />
         ) : visible.length === 0 ? (
-          <EmptyState
-            title={tab === 'plan' ? 'В плане пока пусто' : 'Архив пока пуст'}
-            hint={tab === 'plan' ? 'Скоро появятся новые встречи.' : 'Записи появятся после первых встреч.'}
-          />
+          // Пустой фильтр и пустая вкладка — разные ситуации: в первой человеку
+          // нужно снять фильтр, а не ждать новых встреч.
+          filtered ? (
+            <EmptyState
+              title="Под фильтр ничего не подошло"
+              hint="Попробуйте выбрать другой год, книгу или тип встречи."
+            />
+          ) : (
+            <EmptyState
+              title={tab === 'plan' ? 'В плане пока пусто' : 'Архив пока пуст'}
+              hint={tab === 'plan' ? 'Скоро появятся новые встречи.' : 'Записи появятся после первых встреч.'}
+            />
+          )
         ) : (
           <div className="space-y-6">
             {visible.map((event, i) => (
