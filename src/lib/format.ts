@@ -17,6 +17,14 @@ export function formatEventDate(date: string): string {
   })
 }
 
+// «10 июля 2026» из даты YYYY-MM-DD. Без «г.»: в строке доклада место дорого,
+// а год и так очевиден.
+export function formatDateWithYear(date: string): string {
+  return new Date(`${date}T00:00:00`)
+    .toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+    .replace(' г.', '')
+}
+
 // День недели: «воскресенье».
 export function formatWeekday(date: string): string {
   return new Date(`${date}T00:00:00`).toLocaleDateString('ru-RU', { weekday: 'long' })

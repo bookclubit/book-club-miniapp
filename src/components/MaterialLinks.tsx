@@ -33,7 +33,7 @@ function MaterialLinks({ items }: { items: Material[] }) {
           {item.kind === 'youtube' || item.kind === 'vk' ? (
             <BrandIcon brand={item.kind} size={17} />
           ) : (
-            <Icon name={item.kind === 'slides' ? 'file' : 'external'} size={16} />
+            <Icon name={item.kind === 'slides' ? 'presentation' : 'external'} size={17} />
           )}
         </a>
       ))}

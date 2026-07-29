@@ -17,6 +17,7 @@ import {
   mediaUrl,
 } from '../lib/api'
 import type { ChapterTopics, TopicClaim } from '../lib/api'
+import { formatDateWithYear } from '../lib/format'
 import { collectSpeakerTalks, type SpeakerTalk } from '../lib/speakers'
 import { SPEAKER_SOCIALS } from '../types'
 import type { ClubEvent, IndexSpeaker } from '../types'
@@ -170,36 +171,36 @@ function Speaker() {
               {visible.map((t, i) => (
                 <li
                   key={t.eventId + t.talkTitle}
-                  className="reveal px-5 py-4"
-                  style={{ '--reveal-delay': `${100 + i * 60}ms` } as React.CSSProperties}
+                  className="reveal flex items-center justify-between gap-3 px-5 py-3"
+                  style={{ '--reveal-delay': `${100 + i * 50}ms` } as React.CSSProperties}
                 >
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-faint">
-                    <span>
-                      {t.date
-                        ? formatTalkDate(t.date)
-                        : t.chapterOrder
-                          ? `Глава ${t.chapterOrder}`
-                          : 'Доклад'}
-                    </span>
-                    {bookTitleById(t.bookId) ? (
-                      <>
-                        <span aria-hidden="true">·</span>
-                        <span>{bookTitleById(t.bookId)}</span>
-                      </>
-                    ) : null}
-                    {t.pending ? (
-                      <span className="rounded-full bg-canvas px-2 py-0.5">заявка</span>
-                    ) : null}
+                  {/* Название и под ним дата с книгой. Названия встречи здесь нет:
+                      оно повторяет главу, а строка от него росла втрое. */}
+                  <div className="min-w-0">
+                    <h3 className="font-display text-base font-semibold leading-snug text-ink">
+                      {t.talkTitle}
+                    </h3>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-ink-faint">
+                      <span>
+                        {t.date
+                          ? formatDateWithYear(t.date)
+                          : t.chapterOrder
+                            ? `Глава ${t.chapterOrder}`
+                            : 'Доклад'}
+                      </span>
+                      {bookTitleById(t.bookId) ? (
+                        <>
+                          <span aria-hidden="true">·</span>
+                          <span>{bookTitleById(t.bookId)}</span>
+                        </>
+                      ) : null}
+                      {t.pending ? (
+                        <span className="rounded-full bg-canvas px-2 py-0.5">заявка</span>
+                      ) : null}
+                    </div>
                   </div>
 
-                  {/* Название во всю ширину, встреча и материалы — строкой под ним. */}
-                  <h3 className="font-display mt-1 text-base font-semibold leading-snug text-ink">
-                    {t.talkTitle}
-                  </h3>
-                  <div className="mt-2 flex items-center justify-between gap-3">
-                    <p className="min-w-0 text-xs text-ink-faint">{t.eventTitle}</p>
-                    <MaterialLinks items={talkMaterials(t)} />
-                  </div>
+                  <MaterialLinks items={talkMaterials(t)} />
                 </li>
               ))}
             </ul>
@@ -236,14 +237,6 @@ function talkMaterials(talk: SpeakerTalk): Material[] {
         ]
       : []),
   ]
-}
-
-function formatTalkDate(date: string): string {
-  return new Date(`${date}T00:00:00`).toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
