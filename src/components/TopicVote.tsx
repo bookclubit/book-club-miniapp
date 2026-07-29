@@ -13,7 +13,8 @@ function Arrow({ down = false }: { down?: boolean }) {
 }
 
 /**
- * Оценка темы: стрелка вверх, баланс голосов, стрелка вниз — как на Reddit.
+ * Оценка темы: стрелка вверх, баланс голосов, стрелка вниз столбиком —
+ * как на Reddit. Столбик стоит у правого края строки по центру.
  *
  * Почему не десятибалльная шкала: оценок на тему десятки, и средний балл по
  * такой выборке — шум, а десять целей на мобильном экране мало кто нажмёт.
@@ -30,10 +31,12 @@ function TopicVote({ topicId }: { topicId: string }) {
   const balance = rating.up - rating.down
 
   const hint = canVote ? null : 'Оценивать можно после входа через Telegram'
-  const button = 'icon-link disabled:cursor-default disabled:opacity-60'
+  // h-5 вместо квадрата icon-link: столбик из двух кнопок и числа должен быть
+  // не выше самой строки темы.
+  const button = 'icon-link h-5 w-8 disabled:cursor-default disabled:opacity-60'
 
   return (
-    <div className="flex shrink-0 items-center">
+    <div className="flex shrink-0 flex-col items-center">
       <button
         type="button"
         disabled={!canVote}
@@ -48,7 +51,7 @@ function TopicVote({ topicId }: { topicId: string }) {
 
       <span
         aria-label={`Баланс оценок: ${balance}`}
-        className={`min-w-5 text-center text-xs font-semibold tabular-nums ${
+        className={`text-center text-xs font-semibold leading-4 tabular-nums ${
           mine === 0 ? 'text-ink-soft' : 'text-accent'
         }`}
       >
