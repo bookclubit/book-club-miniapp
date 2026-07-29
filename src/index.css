@@ -227,6 +227,28 @@ p {
     @apply cursor-not-allowed opacity-60;
   }
 
+  /* Квадратная кнопка-иконка: ссылки на материалы (запись, слайды, ресурс).
+     Смысл несёт aria-label/title — подписи рядом нет, иначе строка темы или
+     доклада разрастается в карточку. */
+  .icon-link {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-btn border border-line bg-surface text-ink-faint;
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease,
+      color 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .icon-link:hover {
+    border-color: var(--color-line-strong);
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+  }
+
+  .icon-link:active {
+    transform: scale(0.96);
+  }
+
   /* Текстовая ссылка «назад» */
   .link-back {
     @apply inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft;

@@ -6,6 +6,7 @@ import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
+import MaterialLinks, { type Material } from '../components/MaterialLinks'
 import Pill from '../components/Pill'
 import {
   bookTitleById,
@@ -16,7 +17,7 @@ import {
   mediaUrl,
 } from '../lib/api'
 import type { ChapterTopics, TopicClaim } from '../lib/api'
-import { collectSpeakerTalks } from '../lib/speakers'
+import { collectSpeakerTalks, type SpeakerTalk } from '../lib/speakers'
 import { SPEAKER_SOCIALS } from '../types'
 import type { ClubEvent, IndexSpeaker } from '../types'
 
@@ -163,60 +164,42 @@ function Speaker() {
           {visible.length === 0 ? (
             <EmptyState title="Докладов пока нет" hint="Скоро появятся выступления." />
           ) : (
-            <ul className="space-y-4">
+            // Список с разделителями, материалы иконками — как темы главы:
+            // один и тот же доклад не должен выглядеть в двух местах по-разному.
+            <ul className="card divide-y divide-line p-0">
               {visible.map((t, i) => (
                 <li
                   key={t.eventId + t.talkTitle}
-                  className="reveal card"
-                  style={{ '--reveal-delay': `${100 + i * 70}ms` } as React.CSSProperties}
+                  className="reveal px-5 py-4"
+                  style={{ '--reveal-delay': `${100 + i * 60}ms` } as React.CSSProperties}
                 >
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="text-xs font-semibold uppercase tracking-widest text-ink-faint">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-faint">
+                    <span>
                       {t.date
                         ? formatTalkDate(t.date)
                         : t.chapterOrder
                           ? `Глава ${t.chapterOrder}`
                           : 'Доклад'}
                     </span>
-                    <div className="flex shrink-0 items-center gap-2">
-                      {t.pending ? (
-                        <span className="rounded-full bg-canvas px-2.5 py-0.5 text-xs text-ink-faint">
-                          заявка
-                        </span>
-                      ) : null}
-                      {bookTitleById(t.bookId) ? (
-                        <span className="rounded-full bg-canvas px-2.5 py-0.5 text-xs text-ink-faint">
-                          {bookTitleById(t.bookId)}
-                        </span>
-                      ) : null}
-                    </div>
+                    {bookTitleById(t.bookId) ? (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>{bookTitleById(t.bookId)}</span>
+                      </>
+                    ) : null}
+                    {t.pending ? (
+                      <span className="rounded-full bg-canvas px-2 py-0.5">заявка</span>
+                    ) : null}
                   </div>
-                  <h3 className="font-display mt-2 text-lg font-semibold leading-snug text-ink">
+
+                  {/* Название во всю ширину, встреча и материалы — строкой под ним. */}
+                  <h3 className="font-display mt-1 text-base font-semibold leading-snug text-ink">
                     {t.talkTitle}
                   </h3>
-                  <p className="mt-1 text-sm text-ink-soft">{t.eventTitle}</p>
-                  {t.slidesUrl || t.youtube || t.vk ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {t.slidesUrl ? (
-                        <a href={t.slidesUrl} target="_blank" rel="noreferrer" className="btn-ghost px-4 py-2 text-xs">
-                          <Icon name="external" size={14} />
-                          Слайды
-                        </a>
-                      ) : null}
-                      {t.youtube ? (
-                        <a href={t.youtube} target="_blank" rel="noreferrer" className="btn-ghost px-4 py-2 text-xs">
-                          <Icon name="play" size={14} />
-                          {t.finished ? 'Запись YouTube' : 'YouTube'}
-                        </a>
-                      ) : null}
-                      {t.vk ? (
-                        <a href={t.vk} target="_blank" rel="noreferrer" className="btn-ghost px-4 py-2 text-xs">
-                          <Icon name="play" size={14} />
-                          {t.finished ? 'Запись VK' : 'VK Видео'}
-                        </a>
-                      ) : null}
-                    </div>
-                  ) : null}
+                  <div className="mt-2 flex items-center justify-between gap-3">
+                    <p className="min-w-0 text-xs text-ink-faint">{t.eventTitle}</p>
+                    <MaterialLinks items={talkMaterials(t)} />
+                  </div>
                 </li>
               ))}
             </ul>
@@ -225,6 +208,34 @@ function Speaker() {
       </section>
     </div>
   )
+}
+
+// Материалы доклада: слайды и записи. Пока встреча не прошла, «запись» —
+// ссылка на будущий эфир, поэтому подпись зависит от статуса встречи.
+function talkMaterials(talk: SpeakerTalk): Material[] {
+  return [
+    ...(talk.slidesUrl
+      ? [{ kind: 'slides' as const, href: talk.slidesUrl, label: 'Слайды доклада' }]
+      : []),
+    ...(talk.youtube
+      ? [
+          {
+            kind: 'youtube' as const,
+            href: talk.youtube,
+            label: talk.finished ? 'Запись на YouTube' : 'Эфир на YouTube',
+          },
+        ]
+      : []),
+    ...(talk.vk
+      ? [
+          {
+            kind: 'vk' as const,
+            href: talk.vk,
+            label: talk.finished ? 'Запись в VK' : 'Эфир в VK',
+          },
+        ]
+      : []),
+  ]
 }
 
 function formatTalkDate(date: string): string {

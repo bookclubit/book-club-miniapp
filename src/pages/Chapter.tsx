@@ -6,7 +6,7 @@ import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import LearningOutcome from '../components/LearningOutcome'
 import AddChapterToDeck from '../components/AddChapterToDeck'
-import TopicSection from '../components/TopicSection'
+import TopicRow from '../components/TopicRow'
 import { chapterUrl, fetchFlashcards, fetchIndex, fetcher } from '../lib/api'
 import type { Chapter as ChapterData, ContentIndex, Flashcard } from '../types'
 
@@ -66,20 +66,25 @@ function Chapter() {
             ) : null}
           </header>
 
-          <div className="mt-12">
+          <section className="reveal mt-12" style={{ '--reveal-delay': '120ms' } as React.CSSProperties}>
             {chapter.data.topics.length === 0 ? (
               <EmptyState
                 title="Темы пока не добавлены"
                 hint="Материалы появятся после разбора главы на встрече."
               />
             ) : (
-              <div className="space-y-5">
-                {chapter.data.topics.map((topic, i) => (
-                  <TopicSection key={topic.id} topic={topic} index={i} />
-                ))}
-              </div>
+              <>
+                <h2 className="font-display text-2xl font-semibold text-ink">Темы</h2>
+                {/* Один список с разделителями, а не карточка на тему: у темы
+                    есть только название, спикер и ссылки. */}
+                <ul className="card mt-5 divide-y divide-line p-0">
+                  {chapter.data.topics.map((topic, i) => (
+                    <TopicRow key={topic.id} topic={topic} index={i} />
+                  ))}
+                </ul>
+              </>
             )}
-          </div>
+          </section>
         </>
       ) : null}
     </div>

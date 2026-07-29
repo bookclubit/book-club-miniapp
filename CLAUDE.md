@@ -42,7 +42,8 @@ GitHub-репозитория `book-club-data` (организация `bookclub
 - `books/{folder}/chapters/{chapterSlug}/chapter.json` — глава целиком, вместе с темами:
   `topics: [{id, title, speakers[], video_youtube, video_vk, presentation, resources[]}]`.
   У темы нет ни отдельного файла, ни текста: в UI это название, иконка с именем
-  спикера и ссылки на материалы (`components/TopicSection.tsx`)
+  спикера и ссылки на материалы иконками (`components/TopicRow.tsx` — тема
+  занимает одну строку списка, а не карточку: показывать больше нечего)
 - `books/{folder}/flashcards.json` — карточки (может отсутствовать — тогда 404 трактуется как пустой список).
   У карточки есть необязательный `example` — пример к ответу; показывается на
   обратной стороне под ответом моноширинным блоком (`components/FlashCard.tsx`)
@@ -94,7 +95,12 @@ GitHub-репозитория `book-club-data` (организация `bookclub
 - Текст на акцентном фоне — токен `on-accent` (не `text-white`); блоки кода — токены `terminal`/`terminal-ink` (тёмные в обеих темах)
 - Один акцентный цвет — терракота (`accent`); семантические `success`/`warn`/`danger` с мягкими `-soft`-фонами
 - Шрифты: `font-display` (Source Serif 4) для заголовков и названий, Golos Text — текст и UI; подключены в `index.html`
-- Иконки — только inline-SVG через `components/Icon.tsx`; эмодзи в UI не использовать
+- Иконки — только inline-SVG через `components/Icon.tsx` (фирменные глифы соцсетей —
+  `components/BrandIcon.tsx`); эмодзи в UI не использовать
+- Ссылки на материалы (запись, слайды, доп. ссылка) — иконками без подписей:
+  общий `components/MaterialLinks.tsx` и класс `.icon-link`, смысл несёт
+  `aria-label`/`title`. Один и тот же доклад показывается и в главе, и в профиле
+  спикера — набор иконок обязан быть общим
 - Анимации: каскадное появление через класс `.reveal` и CSS-переменную `--reveal-delay`; hover-переходы 0.2–0.3s; обязательно уважать `prefers-reduced-motion` (уже в `index.css`)
 - Не использовать произвольные значения (`rounded-[14px]`, `p-[17px]`) — только классы из токенов и шкалы Tailwind
 - Обязательные состояния интерактивных элементов: hover, focus-visible (глобальный стиль в `index.css`), active, disabled
