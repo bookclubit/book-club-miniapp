@@ -167,40 +167,40 @@ function Speaker() {
           ) : (
             // Список с разделителями, материалы иконками — как темы главы:
             // один и тот же доклад не должен выглядеть в двух местах по-разному.
-            <ul className="card divide-y divide-line p-0">
+            <ul className="divide-y divide-line">
               {visible.map((t, i) => (
                 <li
                   key={t.eventId + t.talkTitle}
-                  className="reveal flex items-center justify-between gap-3 px-5 py-3"
+                  className="reveal py-3"
                   style={{ '--reveal-delay': `${100 + i * 50}ms` } as React.CSSProperties}
                 >
-                  {/* Название и под ним дата с книгой. Названия встречи здесь нет:
-                      оно повторяет главу, а строка от него росла втрое. */}
-                  <div className="min-w-0">
-                    <h3 className="font-display text-base font-semibold leading-snug text-ink">
+                  {/* Название и материалы — на одной строке, дата с книгой — второй.
+                      Названия встречи здесь нет: оно повторяет главу. */}
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="min-w-0 font-display text-base font-semibold leading-snug text-ink">
                       {t.talkTitle}
                     </h3>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-ink-faint">
-                      <span>
-                        {t.date
-                          ? formatDateWithYear(t.date)
-                          : t.chapterOrder
-                            ? `Глава ${t.chapterOrder}`
-                            : 'Доклад'}
-                      </span>
-                      {bookTitleById(t.bookId) ? (
-                        <>
-                          <span aria-hidden="true">·</span>
-                          <span>{bookTitleById(t.bookId)}</span>
-                        </>
-                      ) : null}
-                      {t.pending ? (
-                        <span className="rounded-full bg-canvas px-2 py-0.5">заявка</span>
-                      ) : null}
-                    </div>
+                    <MaterialLinks items={talkMaterials(t)} />
                   </div>
 
-                  <MaterialLinks items={talkMaterials(t)} />
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-ink-faint">
+                    <span>
+                      {t.date
+                        ? formatDateWithYear(t.date)
+                        : t.chapterOrder
+                          ? `Глава ${t.chapterOrder}`
+                          : 'Доклад'}
+                    </span>
+                    {bookTitleById(t.bookId) ? (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        <span>{bookTitleById(t.bookId)}</span>
+                      </>
+                    ) : null}
+                    {t.pending ? (
+                      <span className="rounded-full bg-canvas px-2 py-0.5">заявка</span>
+                    ) : null}
+                  </div>
                 </li>
               ))}
             </ul>

@@ -1,15 +1,20 @@
 import { Link } from 'react-router-dom'
+import useSWR from 'swr'
 import MaterialLinks, { type Material } from './MaterialLinks'
-import { speakerByName } from '../lib/api'
-import type { Topic } from '../types'
+import { fetchIndex, matchSpeaker } from '../lib/api'
+import type { ContentIndex, Topic } from '../types'
 
 /**
  * Спикер темы — только имя, ссылкой на его страницу (если он есть в реестре).
  * В данных спикер указан как придётся («Антон», «Антон Помазков»), поэтому имя
  * берём из реестра по алиасу: в списке тем должно стоять полное имя.
+ *
+ * Реестр берём через SWR (ключ общий со страницей главы — лишнего запроса нет):
+ * из кэша api.ts он на первом рендере ещё пуст, и имя осталось бы коротким.
  */
 function SpeakerLink({ name }: { name: string }) {
-  const speaker = speakerByName(name)
+  const { data: index } = useSWR<ContentIndex>('index', fetchIndex)
+  const speaker = matchSpeaker(index?.speakers ?? [], name)
 
   return speaker ? (
     <Link
@@ -64,23 +69,27 @@ function TopicRow({ topic, index }: { topic: Topic; index: number }) {
 
   return (
     <li
-      className="reveal flex items-center justify-between gap-3 px-5 py-3"
+      className="reveal py-3"
       style={{ '--reveal-delay': `${index * 50}ms` } as React.CSSProperties}
     >
-      <div className="min-w-0">
-        <h3 id={topic.id} className="font-display text-base font-semibold leading-snug text-ink">
+      {/* Название и материалы — на одной строке, спикер — второй строкой. */}
+      <div className="flex items-center justify-between gap-3">
+        <h3
+          id={topic.id}
+          className="min-w-0 font-display text-base font-semibold leading-snug text-ink"
+        >
           {topic.title}
         </h3>
-        {speakers.length > 0 ? (
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            {speakers.map((name) => (
-              <SpeakerLink key={name} name={name} />
-            ))}
-          </div>
-        ) : null}
+        <MaterialLinks items={links} />
       </div>
 
-      <MaterialLinks items={links} />
+      {speakers.length > 0 ? (
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          {speakers.map((name) => (
+            <SpeakerLink key={name} name={name} />
+          ))}
+        </div>
+      ) : null}
     </li>
   )
 }

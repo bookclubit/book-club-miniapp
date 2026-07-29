@@ -75,9 +75,9 @@ function Chapter() {
             ) : (
               <>
                 <h2 className="font-display text-2xl font-semibold text-ink">Темы</h2>
-                {/* Один список с разделителями, а не карточка на тему: у темы
-                    есть только название, спикер и ссылки. */}
-                <ul className="card mt-5 divide-y divide-line p-0">
+                {/* Просто список: ни карточек на тему, ни рамки вокруг — у темы
+                    есть только название, спикер и ссылки на материалы. */}
+                <ul className="mt-3 divide-y divide-line">
                   {chapter.data.topics.map((topic, i) => (
                     <TopicRow key={topic.id} topic={topic} index={i} />
                   ))}

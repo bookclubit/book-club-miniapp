@@ -251,11 +251,20 @@ export function speakerAvatar(name: string): string | undefined {
   return mediaUrl(speakerByName(name)?.avatar)
 }
 
-// Профиль спикера по имени или алиасу — чтобы вести с темы на его страницу.
+// Спикер по имени или алиасу: в данных тема подписана как придётся
+// («Антон», «Антон Помазков»). Чистая функция — компонентам, которые берут
+// реестр через SWR и обязаны перерисоваться, когда он загрузится.
+export function matchSpeaker(
+  speakers: IndexSpeaker[],
+  name: string,
+): IndexSpeaker | undefined {
+  return speakers.find((s) => s.name === name || s.aliases.includes(name))
+}
+
+// То же по кэшу реестра — для мест, где он к моменту вызова уже загружен
+// страницей (иначе вернёт undefined и не перерисуется при загрузке).
 export function speakerByName(name: string): IndexSpeaker | undefined {
-  return contentIndex?.speakers.find(
-    (s) => s.name === name || s.aliases.includes(name),
-  )
+  return matchSpeaker(contentIndex?.speakers ?? [], name)
 }
 
 // Спикеры клуба из реестра (профили: имя, аватар, био, соцсети). Ключ SWR: 'speakers'.
