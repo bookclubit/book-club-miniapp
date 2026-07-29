@@ -216,3 +216,45 @@ export async function saveUserSettings(daily: number): Promise<{ daily_cards: nu
     body: JSON.stringify({ daily_cards: daily }),
   })
 }
+
+// --- Оценки тем ---
+
+/** Свод оценок темы. `score` — рейтинг (нижняя граница Уилсона), считает бот. */
+export interface TopicRating {
+  topic_id: string
+  up: number
+  down: number
+  votes: number
+  score: number
+}
+
+/** Оценка человека: 1 — «полезно», -1 — «не очень», 0 — снять свою оценку. */
+export type TopicVoteValue = 1 | -1 | 0
+
+export interface TopicRatingsResponse {
+  ratings: TopicRating[]
+  /** Что оценил текущий пользователь (пусто без входа). */
+  my: Record<string, 1 | -1>
+  /** С какого числа оценок тема попадает в рейтинг. */
+  min_votes: number
+}
+
+/**
+ * Рейтинг всех тем: GET /api/topics/ratings. Публичный — виден и без входа;
+ * с сессией дополнительно приезжают свои оценки. Ключ SWR — `topic-ratings:<id>`
+ * (id аккаунта в ключе: у другого человека свои отметки).
+ */
+export async function fetchTopicRatings(): Promise<TopicRatingsResponse> {
+  return authFetch('/api/topics/ratings')
+}
+
+/** Поставить/снять оценку темы: POST /api/topics/vote. Требует входа. */
+export async function sendTopicVote(
+  topicId: string,
+  vote: TopicVoteValue,
+): Promise<{ rating: TopicRating; my_vote: TopicVoteValue }> {
+  return authFetch('/api/topics/vote', {
+    method: 'POST',
+    body: JSON.stringify({ topic_id: topicId, vote }),
+  })
+}

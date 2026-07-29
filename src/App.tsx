@@ -18,6 +18,7 @@ const Meetings = lazy(() => import('./pages/Meetings'))
 const Speaker = lazy(() => import('./pages/Speaker'))
 const Speakers = lazy(() => import('./pages/Speakers'))
 const Study = lazy(() => import('./pages/Study'))
+const Top = lazy(() => import('./pages/Top'))
 const StudyIndex = lazy(() => import('./pages/StudyIndex'))
 
 // Прокрутка к началу при смене маршрута.
@@ -48,6 +49,7 @@ function AnimatedRoutes() {
             <Route path="/books" element={<Books />} />
             <Route path="/meetings" element={<Meetings />} />
             <Route path="/speakers" element={<Speakers />} />
+            <Route path="/top" element={<Top />} />
             <Route path="/join" element={<BecomeSpeaker />} />
             <Route path="/speaker/:id" element={<Speaker />} />
             <Route path="/account" element={<Account />} />

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import useSWR from 'swr'
 import MaterialLinks, { type Material } from './MaterialLinks'
+import TopicVote from './TopicVote'
 import { fetchIndex, matchSpeaker, mediaUrl } from '../lib/api'
 import type { ContentIndex, Topic } from '../types'
 
@@ -105,13 +106,15 @@ function TopicRow({ topic, index }: { topic: Topic; index: number }) {
         <MaterialLinks items={links} />
       </div>
 
-      {speakers.length > 0 ? (
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+      {/* Вторая строка: спикер слева, оценка темы справа. */}
+      <div className="mt-0.5 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
           {speakers.map((name) => (
             <SpeakerLink key={name} name={name} />
           ))}
         </div>
-      ) : null}
+        <TopicVote topicId={topic.id} />
+      </div>
     </li>
   )
 }

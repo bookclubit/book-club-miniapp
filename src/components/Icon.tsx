@@ -19,6 +19,7 @@ export type IconName =
   | 'home'
   | 'users'
   | 'mic'
+  | 'trophy'
 
 const PATHS: Record<IconName, React.ReactNode> = {
   'arrow-left': <path d="M15.5 19 8 12l7.5-7" />,
@@ -98,6 +99,14 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <rect x="9" y="2.5" width="6" height="11" rx="3" />
       <path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" />
+    </>
+  ),
+  // Кубок — вкладка «Топ» (рейтинг тем).
+  trophy: (
+    <>
+      <path d="M7.5 3.5h9V9a4.5 4.5 0 0 1-9 0z" />
+      <path d="M7.5 5H5.5a2 2 0 0 0 0 4h.7M16.5 5h2a2 2 0 0 1 0 4h-.7" />
+      <path d="M12 13.5v4M8.5 20.5h7" />
     </>
   ),
 }

@@ -5,6 +5,7 @@ const TABS: Array<{ to: string; label: string; icon: IconName; end?: boolean }> 
   { to: '/', label: 'Главная', icon: 'home', end: true },
   { to: '/books', label: 'Книги', icon: 'book' },
   { to: '/meetings', label: 'Встречи', icon: 'calendar' },
+  { to: '/top', label: 'Топ', icon: 'trophy' },
   { to: '/speakers', label: 'Спикеры', icon: 'users' },
   { to: '/study', label: 'Карточки', icon: 'cards' },
 ]
