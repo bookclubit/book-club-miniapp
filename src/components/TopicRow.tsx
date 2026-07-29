@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import useSWR from 'swr'
 import MaterialLinks, { type Material } from './MaterialLinks'
-import { fetchIndex, matchSpeaker } from '../lib/api'
+import { fetchIndex, matchSpeaker, mediaUrl } from '../lib/api'
 import type { ContentIndex, Topic } from '../types'
 
 /**
@@ -15,16 +15,39 @@ import type { ContentIndex, Topic } from '../types'
 function SpeakerLink({ name }: { name: string }) {
   const { data: index } = useSWR<ContentIndex>('index', fetchIndex)
   const speaker = matchSpeaker(index?.speakers ?? [], name)
+  const avatar = mediaUrl(speaker?.avatar)
+
+  const body = (
+    <>
+      {avatar ? (
+        <img
+          src={avatar}
+          alt=""
+          width={20}
+          height={20}
+          loading="lazy"
+          className="h-5 w-5 shrink-0 rounded-full object-cover"
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent-strong"
+        >
+          {name.slice(0, 1)}
+        </span>
+      )}
+      <span>{speaker?.name ?? name}</span>
+    </>
+  )
+
+  const shell = 'inline-flex items-center gap-1.5 text-xs text-ink-faint'
 
   return speaker ? (
-    <Link
-      to={`/speaker/${speaker.id}`}
-      className="text-xs text-ink-faint transition-colors hover:text-accent"
-    >
-      {speaker.name}
+    <Link to={`/speaker/${speaker.id}`} className={`${shell} transition-colors hover:text-accent`}>
+      {body}
     </Link>
   ) : (
-    <span className="text-xs text-ink-faint">{name}</span>
+    <span className={shell}>{body}</span>
   )
 }
 
@@ -57,9 +80,8 @@ function materials(topic: Topic): Material[] {
 }
 
 /**
- * Тема главы одной строкой: название, спикер и материалы иконками.
- * Ни номера, ни аватарки: у темы больше нет описания, и любая добавка
- * перевешивает то немногое, что тема несёт.
+ * Тема главы одной строкой: название с материалами, спикер второй строкой.
+ * Номера у темы нет — порядок задаёт сам список.
  */
 function TopicRow({ topic, index }: { topic: Topic; index: number }) {
   // Списки могут отсутствовать: файл главы правили руками или CDN отдал версию
