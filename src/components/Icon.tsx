@@ -13,7 +13,6 @@ export type IconName =
   | 'check'
   | 'terminal'
   | 'file'
-  | 'presentation'
   | 'sun'
   | 'moon'
   | 'send'
@@ -67,13 +66,6 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <path d="M6 2.5h8L19 8v13.5H6z" />
       <path d="M13.5 3v5.5H19" />
-    </>
-  ),
-  // Экран на стойке — презентация доклада (лист бумаги читался как документ).
-  presentation: (
-    <>
-      <rect x="3" y="3.5" width="18" height="12.5" rx="2" />
-      <path d="M12 16v3.5M8.5 21h7" />
     </>
   ),
   sun: (
