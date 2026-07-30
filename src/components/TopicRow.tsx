@@ -92,7 +92,7 @@ function TopicRow({ topic, index }: { topic: Topic; index: number }) {
 
   return (
     <li
-      className="reveal flex items-center gap-3 py-3"
+      className="reveal flex items-center gap-3 px-4 py-3 transition-colors hover:bg-canvas sm:px-5"
       style={{ '--reveal-delay': `${index * 50}ms` } as React.CSSProperties}
     >
       <div className="min-w-0 grow">

@@ -6,7 +6,7 @@ const ARROW_DOWN = 'M12 20l8-8h-5V4H9v8H4z'
 
 function Arrow({ down = false }: { down?: boolean }) {
   return (
-    <svg aria-hidden="true" width={15} height={15} viewBox="0 0 24 24" fill="currentColor">
+    <svg aria-hidden="true" width={14} height={14} viewBox="0 0 24 24" fill="currentColor">
       <path d={down ? ARROW_DOWN : ARROW_UP} />
     </svg>
   )
@@ -31,9 +31,9 @@ function TopicVote({ topicId }: { topicId: string }) {
   const balance = rating.up - rating.down
 
   const hint = canVote ? null : 'Оценивать можно после входа через Telegram'
-  // h-5 вместо квадрата icon-link: столбик из двух кнопок и числа должен быть
-  // не выше самой строки темы.
-  const button = 'icon-link h-5 w-8 disabled:cursor-default disabled:opacity-60'
+  // Плоские кнопки вместо квадратов icon-link: столбик стоит в строке темы,
+  // и высоту строки должен задавать текст, а не оценка.
+  const button = 'icon-link h-4 w-8 disabled:cursor-default disabled:opacity-60'
 
   return (
     <div className="flex shrink-0 flex-col items-center">
@@ -51,7 +51,7 @@ function TopicVote({ topicId }: { topicId: string }) {
 
       <span
         aria-label={`Баланс оценок: ${balance}`}
-        className={`text-center text-xs font-semibold leading-4 tabular-nums ${
+        className={`text-center text-xs font-semibold leading-none tabular-nums ${
           mine === 0 ? 'text-ink-soft' : 'text-accent'
         }`}
       >

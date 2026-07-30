@@ -247,15 +247,15 @@ p {
     transform: scale(0.94);
   }
 
-  /* Подпись главы у левого края списка тем: текст повёрнут на 90° и читается
-     снизу вверх. Отдельных страниц у глав нет — глава здесь только разделитель,
-     и вертикальная подпись не отбирает ширину у самих тем.
-     Высоту ограничивает max-height: длинное название обрезается многоточием,
-     чтобы подпись не растягивала главу с одной темой. */
-  .chapter-label {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    max-height: 100%;
+  /* Ссылка-переход к главе книги (ряд номеров под заголовком списка) */
+  .chapter-jump {
+    @apply inline-flex min-w-8 items-center justify-center rounded-btn border border-line bg-surface px-2 py-1 text-xs font-semibold tabular-nums text-ink-soft;
+    transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+  }
+
+  .chapter-jump:hover {
+    border-color: var(--color-line-strong);
+    color: var(--color-accent);
   }
 
   /* Текстовая ссылка «назад» */

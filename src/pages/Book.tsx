@@ -59,8 +59,12 @@ function Book() {
   const done = (chapters.data ?? []).filter((c) => c.topics.length > 0).length
   const progress = meta ? readingProgress(bookId, meta.total_chapters) : 0
 
+  const totalTopics = (chapters.data ?? []).reduce((n, c) => n + c.topics.length, 0)
+
+  // Страница-«чтение»: узкая колонка, иначе строка темы растягивается на всю
+  // ширину и оценка у правого края висит в пустоте.
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <Link to="/" className="link-back">
         <Icon name="arrow-left" size={15} />
         Ко всем книгам
@@ -161,7 +165,33 @@ function Book() {
             className="reveal mt-12"
             style={{ '--reveal-delay': '140ms' } as React.CSSProperties}
           >
-            <h2 className="font-display text-2xl font-semibold text-ink">Темы по главам</h2>
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="font-display text-2xl font-semibold text-ink">Темы по главам</h2>
+              {totalTopics > 0 ? (
+                <span className="shrink-0 text-sm text-ink-faint">
+                  {totalTopics} {plural(totalTopics, 'тема', 'темы', 'тем')}
+                </span>
+              ) : null}
+            </div>
+
+            {/* Глав на странице десяток: ряд номеров сразу уводит к нужной.
+                Обычная ссылка-якорь, а не Link — переход внутри страницы
+                браузер делает сам, без записи в историю. */}
+            {chapters.data && chapters.data.length > 3 ? (
+              <nav aria-label="Перейти к главе" className="mt-4 flex flex-wrap gap-1.5">
+                {chapters.data.map((chapter) => (
+                  <a
+                    key={chapter.slug}
+                    href={`#${chapter.slug}`}
+                    title={`Глава ${chapter.order} · ${chapter.title}`}
+                    className="chapter-jump"
+                  >
+                    {chapter.order}
+                  </a>
+                ))}
+              </nav>
+            ) : null}
+
             <div className="mt-5">
               {!chapters.data || chapters.data.length === 0 ? (
                 <EmptyState
@@ -169,7 +199,7 @@ function Book() {
                   hint="Материалы появятся по мере разбора книги."
                 />
               ) : (
-                <div className="space-y-8">
+                <div className="space-y-4">
                   {chapters.data.map((chapter, i) => (
                     <ChapterTopics key={chapter.slug} chapter={chapter} delay={170 + i * 60} />
                   ))}

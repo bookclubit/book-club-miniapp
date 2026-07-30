@@ -1,36 +1,45 @@
+import { plural } from '../lib/format'
 import TopicRow from './TopicRow'
 import type { ChapterWithSlug } from '../types'
 
 /**
- * Глава на странице книги: подпись вертикально у левого края, темы — списком.
- * Отдельной страницы у главы нет: кроме тем показывать нечего, а из-за перехода
- * они терялись. Поэтому главное здесь темы, глава — только подпись-разделитель.
+ * Глава на странице книги: горизонтальный заголовок (номер, название, число тем)
+ * и темы строками под ним. Отдельной страницы у главы нет — кроме тем показывать
+ * нечего, а из-за перехода они терялись.
  *
- * Подпись позиционируется абсолютно: так высоту блока задаёт список тем,
- * а не длина названия главы (она обрезается по высоте списка).
+ * Глава — блок с рамкой: их на странице десяток, и без границ темы всех глав
+ * читались одной простынёй. Тема при этом остаётся строкой, а не карточкой.
  */
 function ChapterTopics({ chapter, delay }: { chapter: ChapterWithSlug; delay: number }) {
-  const label = `Глава ${chapter.order} · ${chapter.title}`
+  const count = chapter.topics.length
 
   return (
     <section
       id={chapter.slug}
-      aria-label={label}
-      className="reveal relative scroll-mt-20 pl-9"
+      className="card reveal scroll-mt-20 overflow-hidden p-0"
       style={{ '--reveal-delay': `${delay}ms` } as React.CSSProperties}
     >
-      <div className="absolute inset-y-0 left-0 flex w-7 items-center justify-center overflow-hidden border-r border-line">
+      <header className="flex items-center gap-3 border-b border-line bg-canvas px-4 py-2.5 sm:px-5">
         <span
-          title={label}
-          className="chapter-label block truncate text-xs font-medium text-ink-faint"
+          aria-hidden="true"
+          className="font-display shrink-0 text-xl font-semibold leading-none text-line-strong"
         >
-          <span className="font-semibold text-ink-soft">Глава {chapter.order}</span>{' '}
-          · {chapter.title}
+          {String(chapter.order).padStart(2, '0')}
         </span>
-      </div>
+        <h3 className="font-display min-w-0 grow text-base font-semibold leading-snug text-ink">
+          {chapter.title}
+        </h3>
+        {count > 0 ? (
+          <span className="shrink-0 text-xs text-ink-faint">
+            {count} {plural(count, 'тема', 'темы', 'тем')}
+          </span>
+        ) : null}
+      </header>
 
-      {chapter.topics.length === 0 ? (
-        <p className="py-4 text-sm text-ink-faint">Темы появятся после разбора главы</p>
+      {count === 0 ? (
+        <p className="px-4 py-4 text-sm text-ink-faint sm:px-5">
+          Темы появятся после разбора главы
+        </p>
       ) : (
         <ul className="divide-y divide-line">
           {chapter.topics.map((topic, i) => (
