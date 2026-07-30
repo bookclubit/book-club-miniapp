@@ -131,6 +131,9 @@ function Top() {
   )
 }
 
+// Ссылки в мета-строке: тише названия, акцент только по наведению.
+const metaLinkClass = 'transition-colors hover:text-accent'
+
 // Строка рейтинга: место, название (ведёт в главу), доля «полезно» и оценка.
 function TopRow({
   place,
@@ -142,9 +145,13 @@ function TopRow({
   speakerIndex?: ContentIndex
 }) {
   const percent = usefulPercent(topic.rating)
-  const names = topic.speakers.map(
-    (name) => matchSpeaker(speakerIndex?.speakers ?? [], name)?.name ?? name,
-  )
+  // Имя спикера — полное, из реестра (в данных тема подписана как придётся);
+  // id нужен, чтобы вести на его страницу. Нет в реестре — просто текст.
+  const speakers = topic.speakers.map((name) => {
+    const speaker = matchSpeaker(speakerIndex?.speakers ?? [], name)
+    return { name: speaker?.name ?? name, id: speaker?.id }
+  })
+  const chapterHref = `/book/${topic.bookFolder}/chapter/${topic.chapterSlug}`
 
   return (
     <li className="reveal flex items-center gap-3 py-3">
@@ -159,11 +166,13 @@ function TopRow({
 
       <div className="min-w-0 grow">
         <Link
-          to={`/book/${topic.bookFolder}/chapter/${topic.chapterSlug}`}
+          to={chapterHref}
           className="font-display text-base font-semibold leading-snug text-ink transition-colors hover:text-accent"
         >
           {topic.title}
         </Link>
+        {/* Книга, глава и спикер — ссылки на свои страницы: из рейтинга обычно
+            и хочется уйти к материалу или к человеку. */}
         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-ink-faint">
           <span className="font-semibold text-ink-soft">{percent}% полезно</span>
           <span aria-hidden="true">·</span>
@@ -171,15 +180,25 @@ function TopRow({
             {topic.rating.votes} {plural(topic.rating.votes, 'оценка', 'оценки', 'оценок')}
           </span>
           <span aria-hidden="true">·</span>
-          <span>{topic.bookTitle}</span>
+          <Link to={`/book/${topic.bookFolder}`} className={metaLinkClass}>
+            {topic.bookTitle}
+          </Link>
           <span aria-hidden="true">·</span>
-          <span>Глава {topic.chapterOrder}</span>
-          {names.length > 0 ? (
-            <>
+          <Link to={chapterHref} className={metaLinkClass}>
+            Глава {topic.chapterOrder}
+          </Link>
+          {speakers.map((speaker) => (
+            <span key={speaker.name} className="flex items-center gap-x-2">
               <span aria-hidden="true">·</span>
-              <span>{names.join(', ')}</span>
-            </>
-          ) : null}
+              {speaker.id ? (
+                <Link to={`/speaker/${speaker.id}`} className={metaLinkClass}>
+                  {speaker.name}
+                </Link>
+              ) : (
+                <span>{speaker.name}</span>
+              )}
+            </span>
+          ))}
         </p>
       </div>
 
