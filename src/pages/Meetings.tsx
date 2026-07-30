@@ -1,17 +1,19 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import useSWR from 'swr'
 import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import EventProgramCard from '../components/EventProgramCard'
-import Icon from '../components/Icon'
+import FilterPills from '../components/FilterPills'
 import Loading from '../components/Loading'
 import Pill from '../components/Pill'
-import { bookTitleById, fetchClaims, fetchEvents } from '../lib/api'
+import Tabs from '../components/Tabs'
+import { bookTitleById, fetchClaims, fetchEvents, fetchIndex } from '../lib/api'
 import type { TopicClaim } from '../lib/api'
-import type { ClubEvent } from '../types'
+import type { ClubEvent, ContentIndex } from '../types'
 
 type Tab = 'plan' | 'archive'
+/** Порядок встреч: 'old' — сначала старые (в плане это ближайшие). */
+type Order = 'old' | 'new'
 
 // Вкладка «Встречи»: таймлайн плана и архив с записями. У встреч плана типа
 // «доклады» видно слоты тем главы — занятые (спикер/заявка) и свободные.
@@ -19,45 +21,57 @@ function Meetings() {
   const { data: events, error, isLoading } = useSWR<ClubEvent[]>('events', fetchEvents)
   // Ошибка заявок не роняет страницу: темы покажем свободными с мелкой подписью.
   const claims = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
+  // Реестр нужен фильтру книг: читаемые сейчас книги идут первыми.
+  const { data: index } = useSWR<ContentIndex>('index', fetchIndex)
   const [tab, setTab] = useState<Tab>('plan')
   const [book, setBook] = useState<string>('all')
   const [year, setYear] = useState<string>('all')
+  const [order, setOrder] = useState<Order>('old')
 
-  // Завершённые (явный флаг) — в архив (свежие сверху), остальные — в план
-  // (ближайшие сверху). Порядок задаём явно, не полагаясь на порядок загрузки.
-  const plan = (events ?? [])
-    .filter((e) => !e.finished)
-    .sort((a, b) => a.date.localeCompare(b.date))
-  const archive = (events ?? [])
-    .filter((e) => e.finished)
-    .sort((a, b) => b.date.localeCompare(a.date))
+  // Завершённые (явный флаг) — в архив, остальные — в план.
+  const plan = (events ?? []).filter((e) => !e.finished)
+  const archive = (events ?? []).filter((e) => e.finished)
   const tabEvents = tab === 'plan' ? plan : archive
 
   // Варианты фильтров считаем по всей вкладке, а не по отфильтрованному списку:
   // иначе выбор одного фильтра прятал бы кнопки остальных.
-  const books: Array<{ id: string; title: string }> = []
+  const books: Array<{ id: string; label: string }> = []
   for (const e of tabEvents) {
     if (e.book_id && !books.some((b) => b.id === e.book_id)) {
-      books.push({ id: e.book_id, title: bookTitleById(e.book_id) ?? e.book_id })
+      books.push({ id: e.book_id, label: bookTitleById(e.book_id) ?? e.book_id })
     }
   }
-  // Годы — от новых к старым: в архиве это основной способ найти встречу.
+  // Книги, которые читаем сейчас, — в начало: они должны остаться в строке,
+  // когда остальные уедут под «…».
+  const reading = new Set(
+    (index?.books ?? []).filter((b) => b.status === 'reading').flatMap((b) => [b.id, b.folder]),
+  )
+  const bookOptions = [...books].sort(
+    (a, b) => Number(reading.has(b.id)) - Number(reading.has(a.id)),
+  )
+  // Годы — от новых к старым: свежие остаются в строке, старые уходят под «…».
   const years = [...new Set(tabEvents.map((e) => e.date.slice(0, 4)))].sort((a, b) =>
     b.localeCompare(a),
   )
 
-  const visible = tabEvents.filter(
-    (e) =>
-      (book === 'all' || e.book_id === book) &&
-      (year === 'all' || e.date.startsWith(year)),
-  )
+  const visible = tabEvents
+    .filter(
+      (e) =>
+        (book === 'all' || e.book_id === book) &&
+        (year === 'all' || e.date.startsWith(year)),
+    )
+    .sort((a, b) =>
+      order === 'old' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date),
+    )
   const filtered = book !== 'all' || year !== 'all'
 
-  function switchTab(next: Tab) {
-    setTab(next)
-    // Фильтры сбрасываем: у плана и архива разные книги и годы.
+  function switchTab(next: string) {
+    setTab(next as Tab)
+    // Фильтры сбрасываем: у плана и архива разные книги и годы. Порядок тоже —
+    // в плане сверху ждут ближайшие встречи, в архиве — последние прошедшие.
     setBook('all')
     setYear('all')
+    setOrder(next === 'plan' ? 'old' : 'new')
   }
 
   return (
@@ -68,53 +82,54 @@ function Meetings() {
           План ближайших встреч и архив с записями. Хочешь выступить — выбирай
           свободную тему из плана.
         </p>
-        <Link to="/join" className="btn-primary mt-4 px-5 py-2.5 text-sm">
-          <Icon name="mic" size={15} />
-          Стать спикером
-        </Link>
       </header>
 
-      <div
-        className="reveal mt-6 flex gap-2"
-        style={{ '--reveal-delay': '60ms' } as React.CSSProperties}
-      >
-        <Pill active={tab === 'plan'} onClick={() => switchTab('plan')}>
-          План
-        </Pill>
-        <Pill active={tab === 'archive'} onClick={() => switchTab('archive')}>
-          Архив
-        </Pill>
+      <div className="reveal mt-6" style={{ '--reveal-delay': '60ms' } as React.CSSProperties}>
+        <Tabs
+          label="Встречи клуба"
+          active={tab}
+          onChange={switchTab}
+          items={[
+            { id: 'plan', label: 'План', count: plan.length },
+            { id: 'archive', label: 'Архив', count: archive.length },
+          ]}
+        />
       </div>
 
-      {/* Фильтры: каждый ряд появляется, только если выбирать есть из чего.
-          Первая кнопка ряда называет измерение — отдельные подписи не нужны. */}
+      {/* Фильтры и порядок: ряд появляется, только если выбирать есть из чего.
+          Первая «таблетка» ряда называет измерение — отдельные подписи не нужны. */}
       <div
-        className="reveal mt-4 space-y-2"
+        className="reveal mt-5 space-y-2"
         style={{ '--reveal-delay': '80ms' } as React.CSSProperties}
       >
-        {books.length > 1 ? (
-          <div className="flex flex-wrap gap-2">
-            <Pill size="sm" active={book === 'all'} onClick={() => setBook('all')}>
-              Все книги
-            </Pill>
-            {books.map((b) => (
-              <Pill key={b.id} size="sm" active={book === b.id} onClick={() => setBook(b.id)}>
-                {b.title}
-              </Pill>
-            ))}
-          </div>
+        {bookOptions.length > 1 ? (
+          <FilterPills
+            label="книги"
+            allLabel="Все книги"
+            options={bookOptions}
+            active={book}
+            onSelect={setBook}
+          />
         ) : null}
 
         {years.length > 1 ? (
-          <div className="flex flex-wrap gap-2">
-            <Pill size="sm" active={year === 'all'} onClick={() => setYear('all')}>
-              Все годы
+          <FilterPills
+            label="годы"
+            allLabel="Все годы"
+            options={years.map((y) => ({ id: y, label: y }))}
+            active={year}
+            onSelect={setYear}
+          />
+        ) : null}
+
+        {tabEvents.length > 1 ? (
+          <div className="flex gap-2 pt-1">
+            <Pill size="sm" active={order === 'old'} onClick={() => setOrder('old')}>
+              Сначала старые
             </Pill>
-            {years.map((y) => (
-              <Pill key={y} size="sm" active={year === y} onClick={() => setYear(y)}>
-                {y}
-              </Pill>
-            ))}
+            <Pill size="sm" active={order === 'new'} onClick={() => setOrder('new')}>
+              Сначала новые
+            </Pill>
           </div>
         ) : null}
       </div>

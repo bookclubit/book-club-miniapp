@@ -17,7 +17,7 @@ function Pill({ active, onClick, size = 'md', disabled, children }: PillProps) {
       onClick={onClick}
       aria-pressed={active}
       disabled={disabled}
-      className={`rounded-full font-medium disabled:opacity-60 ${sizing} ${
+      className={`shrink-0 whitespace-nowrap rounded-full font-medium disabled:opacity-60 ${sizing} ${
         active
           ? 'bg-accent text-on-accent'
           : 'border border-line bg-surface text-ink-faint transition-colors duration-200 hover:text-ink'
