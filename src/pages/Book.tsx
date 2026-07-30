@@ -1,7 +1,8 @@
-import { Link, useParams } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import useSWR from 'swr'
 import AddBookToDeck from '../components/AddBookToDeck'
-import ChapterCard from '../components/ChapterCard'
+import ChapterTopics from '../components/ChapterTopics'
 import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import Icon from '../components/Icon'
@@ -10,17 +11,20 @@ import {
   fetchBooks,
   fetchChapters,
   fetchFlashcards,
+  fetchIndex,
   mediaUrl,
   readingProgress,
 } from '../lib/api'
 import type { BookWithFolder } from '../lib/api'
 import { authorKey } from '../lib/authors'
 import { plural } from '../lib/format'
-import type { ChapterWithSlug, Flashcard } from '../types'
+import type { ChapterWithSlug, ContentIndex, Flashcard } from '../types'
 
-// Страница книги: обложка, авторы, описание, главы и переход к карточкам.
+// Страница книги: обложка с кнопкой колоды, авторы, описание и все главы
+// с темами на этой же странице (отдельных страниц у глав нет).
 function Book() {
   const { bookId } = useParams<{ bookId: string }>()
+  const { hash } = useLocation()
 
   // Единый кэш книг с Home/Books: мета не грузится второй раз по своему ключу.
   const books = useSWR<BookWithFolder[]>('books', fetchBooks)
@@ -32,6 +36,17 @@ function Book() {
     bookId ? `flashcards:${bookId}` : null,
     () => fetchFlashcards(bookId as string),
   )
+  // Реестр нужен темам: по нему находятся аватарки спикеров и их страницы.
+  useSWR<ContentIndex>('index', fetchIndex)
+
+  // Ссылки на главу и тему — якоря этой страницы (#slug, #topicId). Прокрутить
+  // можно только когда главы уже в DOM, а рисуются они после загрузки И мет,
+  // И глав: пока грузится хоть что-то, на месте списка заглушка.
+  const ready = Boolean(books.data && chapters.data)
+  useEffect(() => {
+    if (!hash || !ready) return
+    document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView()
+  }, [hash, ready])
 
   if (!bookId) return <ErrorState message="Не указана книга." />
 
@@ -39,6 +54,10 @@ function Book() {
   const isLoading = books.isLoading || chapters.isLoading
   const error = books.error || chapters.error
   const cardCount = cards.data?.length ?? 0
+  // Разобранная глава — та, у которой есть темы (пустые заготовки не в счёт):
+  // так же считает прогресс в readingProgress, цифры не должны расходиться.
+  const done = (chapters.data ?? []).filter((c) => c.topics.length > 0).length
+  const progress = meta ? readingProgress(bookId, meta.total_chapters) : 0
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -57,15 +76,19 @@ function Book() {
         <>
           {meta ? (
             <header className="reveal mt-8 flex flex-col gap-8 sm:flex-row">
-              {meta.cover ? (
-                <img
-                  src={mediaUrl(meta.cover)}
-                  alt={`Обложка книги «${meta.title}»`}
-                  width={176}
-                  height={250}
-                  className="h-62.5 w-44 shrink-0 self-start rounded-lg object-cover shadow-lift"
-                />
-              ) : null}
+              {/* Обложка и под ней — кнопка колоды (по ширине обложки). */}
+              <div className="w-44 shrink-0 self-start">
+                {meta.cover ? (
+                  <img
+                    src={mediaUrl(meta.cover)}
+                    alt={`Обложка книги «${meta.title}»`}
+                    width={176}
+                    height={250}
+                    className="h-62.5 w-44 rounded-lg object-cover shadow-lift"
+                  />
+                ) : null}
+                {cardCount > 0 ? <AddBookToDeck bookId={bookId} count={cardCount} /> : null}
+              </div>
 
               <div className="min-w-0">
                 <h1 className="font-display text-3xl font-semibold leading-tight text-ink sm:text-4xl">
@@ -111,16 +134,14 @@ function Book() {
                 <div className="mt-5 max-w-md">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-ink-faint">
-                      Разобрано {chapters.data?.length ?? 0} из {meta.total_chapters}{' '}
+                      Разобрано {done} из {meta.total_chapters}{' '}
                       {plural(meta.total_chapters, 'главы', 'глав', 'глав')}
                     </span>
-                    <span className="font-semibold text-ink">
-                      {readingProgress(bookId, meta.total_chapters)}%
-                    </span>
+                    <span className="font-semibold text-ink">{progress}%</span>
                   </div>
                   <div
                     role="progressbar"
-                    aria-valuenow={readingProgress(bookId, meta.total_chapters)}
+                    aria-valuenow={progress}
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-label="Прогресс чтения"
@@ -128,12 +149,10 @@ function Book() {
                   >
                     <div
                       className="progress-fill h-full rounded-full bg-accent"
-                      style={{ width: `${readingProgress(bookId, meta.total_chapters)}%` }}
+                      style={{ width: `${progress}%` }}
                     />
                   </div>
                 </div>
-
-                {cardCount > 0 ? <AddBookToDeck bookId={bookId} count={cardCount} /> : null}
               </div>
             </header>
           ) : null}
@@ -142,7 +161,7 @@ function Book() {
             className="reveal mt-12"
             style={{ '--reveal-delay': '140ms' } as React.CSSProperties}
           >
-            <h2 className="font-display text-2xl font-semibold text-ink">Разобранные главы</h2>
+            <h2 className="font-display text-2xl font-semibold text-ink">Темы по главам</h2>
             <div className="mt-5">
               {!chapters.data || chapters.data.length === 0 ? (
                 <EmptyState
@@ -150,15 +169,9 @@ function Book() {
                   hint="Материалы появятся по мере разбора книги."
                 />
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-8">
                   {chapters.data.map((chapter, i) => (
-                    <div
-                      key={chapter.slug}
-                      className="reveal"
-                      style={{ '--reveal-delay': `${170 + i * 80}ms` } as React.CSSProperties}
-                    >
-                      <ChapterCard bookId={bookId} chapter={chapter} />
-                    </div>
+                    <ChapterTopics key={chapter.slug} chapter={chapter} delay={170 + i * 60} />
                   ))}
                 </div>
               )}

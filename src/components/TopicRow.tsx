@@ -98,9 +98,11 @@ function TopicRow({ topic, index }: { topic: Topic; index: number }) {
       <div className="min-w-0 grow">
         {/* Название и материалы — на одной строке, спикер — второй строкой. */}
         <div className="flex items-center justify-between gap-3">
+          {/* id — якорь темы: на него ведут ссылки из «Топа» и профиля спикера
+              (scroll-mt — чтобы липкая шапка не закрывала название). */}
           <h3
             id={topic.id}
-            className="min-w-0 font-display text-base font-semibold leading-snug text-ink"
+            className="min-w-0 scroll-mt-20 font-display text-base font-semibold leading-snug text-ink"
           >
             {topic.title}
           </h3>

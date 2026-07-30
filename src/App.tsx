@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom'
 import BottomNav from './components/BottomNav'
 import ErrorBoundary from './components/ErrorBoundary'
 import Header from './components/Header'
@@ -12,7 +12,6 @@ const Author = lazy(() => import('./pages/Author'))
 const BecomeSpeaker = lazy(() => import('./pages/BecomeSpeaker'))
 const Book = lazy(() => import('./pages/Book'))
 const Books = lazy(() => import('./pages/Books'))
-const Chapter = lazy(() => import('./pages/Chapter'))
 const Home = lazy(() => import('./pages/Home'))
 const Meetings = lazy(() => import('./pages/Meetings'))
 const Speaker = lazy(() => import('./pages/Speaker'))
@@ -21,12 +20,23 @@ const Study = lazy(() => import('./pages/Study'))
 const Top = lazy(() => import('./pages/Top'))
 const StudyIndex = lazy(() => import('./pages/StudyIndex'))
 
-// Прокрутка к началу при смене маршрута.
+/**
+ * Старая ссылка на главу (`/book/:bookId/chapter/:chapterId`) — своей страницы
+ * у главы больше нет: главы с темами живут на странице книги. Ведём на книгу,
+ * к якорю главы, чтобы ссылки из чатов и закладок не терялись.
+ */
+function ChapterRedirect() {
+  const { bookId, chapterId } = useParams<{ bookId: string; chapterId: string }>()
+  return <Navigate to={`/book/${bookId}#${chapterId}`} replace />
+}
+
+// Прокрутка к началу при смене маршрута (кроме переходов к якорю).
 function ScrollToTop() {
-  const { pathname } = useLocation()
+  const { pathname, hash } = useLocation()
   useEffect(() => {
+    if (hash) return
     window.scrollTo(0, 0)
-  }, [pathname])
+  }, [pathname, hash])
   return null
 }
 
@@ -55,7 +65,7 @@ function AnimatedRoutes() {
             <Route path="/account" element={<Account />} />
             <Route path="/book/:bookId" element={<Book />} />
             <Route path="/author/:authorId" element={<Author />} />
-            <Route path="/book/:bookId/chapter/:chapterId" element={<Chapter />} />
+            <Route path="/book/:bookId/chapter/:chapterId" element={<ChapterRedirect />} />
             <Route path="/study" element={<StudyIndex />} />
             <Route path="/study/:bookId" element={<Study />} />
             <Route path="*" element={<Home />} />

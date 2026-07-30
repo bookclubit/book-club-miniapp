@@ -151,7 +151,10 @@ function TopRow({
     const speaker = matchSpeaker(speakerIndex?.speakers ?? [], name)
     return { name: speaker?.name ?? name, id: speaker?.id }
   })
-  const chapterHref = `/book/${topic.bookFolder}/chapter/${topic.chapterSlug}`
+  // Своей страницы у главы нет — главы с темами живут на странице книги,
+  // поэтому ведём к якорям: название — к самой теме, «Глава N» — к её главе.
+  const bookHref = `/book/${topic.bookFolder}`
+  const chapterHref = `${bookHref}#${topic.chapterSlug}`
 
   return (
     <li className="reveal flex items-center gap-3 py-3">
@@ -166,7 +169,7 @@ function TopRow({
 
       <div className="min-w-0 grow">
         <Link
-          to={chapterHref}
+          to={`${bookHref}#${topic.id}`}
           className="font-display text-base font-semibold leading-snug text-ink transition-colors hover:text-accent"
         >
           {topic.title}
@@ -180,7 +183,7 @@ function TopRow({
             {topic.rating.votes} {plural(topic.rating.votes, 'оценка', 'оценки', 'оценок')}
           </span>
           <span aria-hidden="true">·</span>
-          <Link to={`/book/${topic.bookFolder}`} className={metaLinkClass}>
+          <Link to={bookHref} className={metaLinkClass}>
             {topic.bookTitle}
           </Link>
           <span aria-hidden="true">·</span>
