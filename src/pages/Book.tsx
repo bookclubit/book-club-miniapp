@@ -14,7 +14,6 @@ import {
   fetchFlashcards,
   fetchIndex,
   mediaUrl,
-  readingProgress,
 } from '../lib/api'
 import type { BookWithFolder } from '../lib/api'
 import { authorKey } from '../lib/authors'
@@ -58,9 +57,9 @@ function Book() {
   const error = books.error || chapters.error
   const cardCount = cards.data?.length ?? 0
   // Разобранная глава — та, у которой есть темы (пустые заготовки не в счёт):
-  // так же считает прогресс в readingProgress, цифры не должны расходиться.
+  // так же считает прогресс в readingProgress (карточки книг), цифры
+  // не должны расходиться.
   const done = (chapters.data ?? []).filter((c) => c.topics.length > 0).length
-  const progress = meta ? readingProgress(bookId, meta.total_chapters) : 0
 
   const shown = chapters.data ?? []
   // Выбранная глава могла пропасть (перешли на другую книгу) — тогда снова все.
@@ -141,28 +140,12 @@ function Book() {
                   {meta.description}
                 </p>
 
-                <div className="mt-5 max-w-md">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-ink-faint">
-                      Разобрано {done} из {meta.total_chapters}{' '}
-                      {plural(meta.total_chapters, 'главы', 'глав', 'глав')}
-                    </span>
-                    <span className="font-semibold text-ink">{progress}%</span>
-                  </div>
-                  <div
-                    role="progressbar"
-                    aria-valuenow={progress}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-label="Прогресс чтения"
-                    className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-line"
-                  >
-                    <div
-                      className="progress-fill h-full rounded-full bg-accent"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                </div>
+                {/* Прогресс — строкой текста, без шкалы: полоса перегружала
+                    шапку, а цифры и так всё говорят. */}
+                <p className="mt-4 text-sm text-ink-faint">
+                  Разобрано {done} из {meta.total_chapters}{' '}
+                  {plural(meta.total_chapters, 'главы', 'глав', 'глав')}
+                </p>
               </div>
             </header>
           ) : null}

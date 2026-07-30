@@ -7,7 +7,6 @@ const NAV = [
   { to: '/', label: 'Главная', end: true },
   { to: '/books', label: 'Книги', end: false },
   { to: '/meetings', label: 'Встречи', end: false },
-  { to: '/top', label: 'Топ тем', end: false },
   { to: '/speakers', label: 'Спикеры', end: false },
   { to: '/study', label: 'Карточки', end: false },
 ]
