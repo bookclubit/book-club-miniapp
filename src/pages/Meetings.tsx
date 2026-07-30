@@ -4,8 +4,8 @@ import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import EventProgramCard from '../components/EventProgramCard'
 import FilterPills from '../components/FilterPills'
+import Icon from '../components/Icon'
 import Loading from '../components/Loading'
-import Pill from '../components/Pill'
 import Tabs from '../components/Tabs'
 import { bookTitleById, fetchClaims, fetchEvents, fetchIndex } from '../lib/api'
 import type { TopicClaim } from '../lib/api'
@@ -93,6 +93,25 @@ function Meetings() {
             { id: 'plan', label: 'План', count: plan.length },
             { id: 'archive', label: 'Архив', count: archive.length },
           ]}
+          right={
+            tabEvents.length > 1 ? (
+              // Порядок — одна тихая кнопка-переключатель: состояний всего два,
+              // и пара «таблеток» ради этого выглядела как ещё один фильтр.
+              <button
+                type="button"
+                onClick={() => setOrder(order === 'new' ? 'old' : 'new')}
+                title="Сменить порядок"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-ink-faint transition-colors hover:text-ink"
+              >
+                <Icon
+                  name="arrow-down"
+                  size={13}
+                  className={order === 'old' ? 'rotate-180' : undefined}
+                />
+                {order === 'new' ? 'Сначала новые' : 'Сначала старые'}
+              </button>
+            ) : null
+          }
         />
       </div>
 
@@ -120,17 +139,6 @@ function Meetings() {
             active={year}
             onSelect={setYear}
           />
-        ) : null}
-
-        {tabEvents.length > 1 ? (
-          <div className="flex gap-2 pt-1">
-            <Pill size="sm" active={order === 'old'} onClick={() => setOrder('old')}>
-              Сначала старые
-            </Pill>
-            <Pill size="sm" active={order === 'new'} onClick={() => setOrder('new')}>
-              Сначала новые
-            </Pill>
-          </div>
         ) : null}
       </div>
 

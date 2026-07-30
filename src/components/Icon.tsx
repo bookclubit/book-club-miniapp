@@ -4,6 +4,7 @@
 export type IconName =
   | 'arrow-left'
   | 'arrow-right'
+  | 'arrow-down'
   | 'calendar'
   | 'play'
   | 'cards'
@@ -24,6 +25,8 @@ export type IconName =
 const PATHS: Record<IconName, React.ReactNode> = {
   'arrow-left': <path d="M15.5 19 8 12l7.5-7" />,
   'arrow-right': <path d="M8.5 5l7.5 7-7.5 7" />,
+  // Порядок сортировки: вниз — «сначала новые», с rotate-180 — «сначала старые».
+  'arrow-down': <path d="M12 4.5v15M5.5 13l6.5 6.5 6.5-6.5" />,
   calendar: (
     <>
       <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
