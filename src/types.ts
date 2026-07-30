@@ -57,11 +57,12 @@ export interface Topic {
   resources: string[]
 }
 
+// Глава: номер, название и темы. Описания и «чему научишься» у главы нет
+// (убраны из данных в июле 2026) — своей страницы у главы нет, она
+// показывается заголовком над списком тем. Не возвращать.
 export interface Chapter {
   order: number
   title: string
-  description: string
-  learning_outcome: string
   topics: Topic[]
 }
 
