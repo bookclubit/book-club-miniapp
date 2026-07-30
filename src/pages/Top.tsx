@@ -71,7 +71,7 @@ function Top() {
         <h1 className="font-display text-3xl font-semibold text-ink sm:text-4xl">Топ тем</h1>
         <p className="mt-2 text-ink-soft">
           Что участники клуба отметили как полезное — по всем книгам. Оценка ставится
-          в один тап на странице главы или здесь.
+          в один тап на странице книги или здесь.
         </p>
       </header>
 
@@ -99,7 +99,7 @@ function Top() {
         ) : ranked.length === 0 && few.length === 0 ? (
           <EmptyState
             title="Темы пока не оценивали"
-            hint="Откройте главу книги и отметьте, что было полезно."
+            hint="Откройте страницу книги и отметьте, что было полезно."
           />
         ) : (
           <>
@@ -167,6 +167,9 @@ function TopRow({
         </span>
       ) : null}
 
+      {/* Оценка слева, как в списке тем главы: одна линия стрелок на весь список. */}
+      <TopicVote topicId={topic.id} />
+
       <div className="min-w-0 grow">
         <Link
           to={`${bookHref}#${topic.id}`}
@@ -204,8 +207,6 @@ function TopRow({
           ))}
         </p>
       </div>
-
-      <TopicVote topicId={topic.id} />
     </li>
   )
 }

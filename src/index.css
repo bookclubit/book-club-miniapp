@@ -247,17 +247,6 @@ p {
     transform: scale(0.94);
   }
 
-  /* Ссылка-переход к главе книги (ряд номеров под заголовком списка) */
-  .chapter-jump {
-    @apply inline-flex min-w-8 items-center justify-center rounded-btn border border-line bg-surface px-2 py-1 text-xs font-semibold tabular-nums text-ink-soft;
-    transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
-  }
-
-  .chapter-jump:hover {
-    border-color: var(--color-line-strong);
-    color: var(--color-accent);
-  }
-
   /* Текстовая ссылка «назад» */
   .link-back {
     @apply inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft;

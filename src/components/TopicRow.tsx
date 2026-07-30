@@ -92,9 +92,13 @@ function TopicRow({ topic, index }: { topic: Topic; index: number }) {
 
   return (
     <li
-      className="reveal flex items-center gap-3 px-4 py-3 transition-colors hover:bg-canvas sm:px-5"
+      className="reveal flex items-center gap-3 py-4"
       style={{ '--reveal-delay': `${index * 50}ms` } as React.CSSProperties}
     >
+      {/* Оценка — столбиком у левого края: у всех тем страницы одна линия
+          стрелок, глазу не нужно ходить к правому краю и обратно. */}
+      <TopicVote topicId={topic.id} />
+
       <div className="min-w-0 grow">
         {/* Название и материалы — на одной строке, спикер — второй строкой. */}
         <div className="flex items-center justify-between gap-3">
@@ -117,9 +121,6 @@ function TopicRow({ topic, index }: { topic: Topic; index: number }) {
           </div>
         ) : null}
       </div>
-
-      {/* Оценка — столбиком у правого края, по центру строки. */}
-      <TopicVote topicId={topic.id} />
     </li>
   )
 }

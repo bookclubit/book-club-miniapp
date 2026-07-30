@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import useSWR from 'swr'
 import AddBookToDeck from '../components/AddBookToDeck'
@@ -7,6 +7,7 @@ import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
+import Pill from '../components/Pill'
 import {
   fetchBooks,
   fetchChapters,
@@ -25,6 +26,8 @@ import type { ChapterWithSlug, ContentIndex, Flashcard } from '../types'
 function Book() {
   const { bookId } = useParams<{ bookId: string }>()
   const { hash } = useLocation()
+  // Фильтр по главе: 'all' или slug главы.
+  const [only, setOnly] = useState('all')
 
   // Единый кэш книг с Home/Books: мета не грузится второй раз по своему ключу.
   const books = useSWR<BookWithFolder[]>('books', fetchBooks)
@@ -59,12 +62,15 @@ function Book() {
   const done = (chapters.data ?? []).filter((c) => c.topics.length > 0).length
   const progress = meta ? readingProgress(bookId, meta.total_chapters) : 0
 
-  const totalTopics = (chapters.data ?? []).reduce((n, c) => n + c.topics.length, 0)
+  const shown = chapters.data ?? []
+  // Выбранная глава могла пропасть (перешли на другую книгу) — тогда снова все.
+  const picked = shown.filter((c) => c.slug === only)
+  const visible = only === 'all' || picked.length === 0 ? shown : picked
 
-  // Страница-«чтение»: узкая колонка, иначе строка темы растягивается на всю
-  // ширину и оценка у правого края висит в пустоте.
+  // Страница-«чтение»: узкая колонка, в широкой строка темы растягивается,
+  // а название и материалы разъезжаются по краям.
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <Link to="/" className="link-back">
         <Icon name="arrow-left" size={15} />
         Ко всем книгам
@@ -79,7 +85,7 @@ function Book() {
       ) : (
         <>
           {meta ? (
-            <header className="reveal mt-8 flex flex-col gap-8 sm:flex-row">
+            <header className="reveal mt-8 flex flex-col gap-8 sm:flex-row sm:gap-10">
               {/* Обложка и под ней — кнопка колоды (по ширине обложки). */}
               <div className="w-44 shrink-0 self-start">
                 {meta.cover ? (
@@ -162,46 +168,39 @@ function Book() {
           ) : null}
 
           <section
-            className="reveal mt-12"
+            className="reveal mt-14"
             style={{ '--reveal-delay': '140ms' } as React.CSSProperties}
           >
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 className="font-display text-2xl font-semibold text-ink">Темы по главам</h2>
-              {totalTopics > 0 ? (
-                <span className="shrink-0 text-sm text-ink-faint">
-                  {totalTopics} {plural(totalTopics, 'тема', 'темы', 'тем')}
-                </span>
-              ) : null}
-            </div>
-
-            {/* Глав на странице десяток: ряд номеров сразу уводит к нужной.
-                Обычная ссылка-якорь, а не Link — переход внутри страницы
-                браузер делает сам, без записи в историю. */}
-            {chapters.data && chapters.data.length > 3 ? (
-              <nav aria-label="Перейти к главе" className="mt-4 flex flex-wrap gap-1.5">
-                {chapters.data.map((chapter) => (
-                  <a
+            {/* Глав бывает больше десятка: вместо прокрутки — фильтр по главе.
+                «Все главы» — состояние по умолчанию. */}
+            {shown.length > 3 ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <Pill size="sm" active={only === 'all'} onClick={() => setOnly('all')}>
+                  Все главы
+                </Pill>
+                {shown.map((chapter) => (
+                  <Pill
                     key={chapter.slug}
-                    href={`#${chapter.slug}`}
-                    title={`Глава ${chapter.order} · ${chapter.title}`}
-                    className="chapter-jump"
+                    size="sm"
+                    active={only === chapter.slug}
+                    onClick={() => setOnly(chapter.slug)}
                   >
                     {chapter.order}
-                  </a>
+                  </Pill>
                 ))}
-              </nav>
+              </div>
             ) : null}
 
-            <div className="mt-5">
-              {!chapters.data || chapters.data.length === 0 ? (
+            <div className="mt-10">
+              {visible.length === 0 ? (
                 <EmptyState
                   title="Главы пока не добавлены"
                   hint="Материалы появятся по мере разбора книги."
                 />
               ) : (
-                <div className="space-y-4">
-                  {chapters.data.map((chapter, i) => (
-                    <ChapterTopics key={chapter.slug} chapter={chapter} delay={170 + i * 60} />
+                <div className="space-y-14">
+                  {visible.map((chapter, i) => (
+                    <ChapterTopics key={chapter.slug} chapter={chapter} delay={i * 60} />
                   ))}
                 </div>
               )}

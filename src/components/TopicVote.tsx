@@ -6,7 +6,7 @@ const ARROW_DOWN = 'M12 20l8-8h-5V4H9v8H4z'
 
 function Arrow({ down = false }: { down?: boolean }) {
   return (
-    <svg aria-hidden="true" width={14} height={14} viewBox="0 0 24 24" fill="currentColor">
+    <svg aria-hidden="true" width={15} height={15} viewBox="0 0 24 24" fill="currentColor">
       <path d={down ? ARROW_DOWN : ARROW_UP} />
     </svg>
   )
@@ -14,7 +14,8 @@ function Arrow({ down = false }: { down?: boolean }) {
 
 /**
  * Оценка темы: стрелка вверх, баланс голосов, стрелка вниз столбиком —
- * как на Reddit. Столбик стоит у правого края строки по центру.
+ * как на Reddit. Столбик стоит у левого края строки: у всех тем страницы одна
+ * линия стрелок, глазу не нужно ходить к правому краю и обратно.
  *
  * Почему не десятибалльная шкала: оценок на тему десятки, и средний балл по
  * такой выборке — шум, а десять целей на мобильном экране мало кто нажмёт.
@@ -51,7 +52,7 @@ function TopicVote({ topicId }: { topicId: string }) {
 
       <span
         aria-label={`Баланс оценок: ${balance}`}
-        className={`text-center text-xs font-semibold leading-none tabular-nums ${
+        className={`py-0.5 text-center text-sm font-semibold leading-none tabular-nums ${
           mine === 0 ? 'text-ink-soft' : 'text-accent'
         }`}
       >
