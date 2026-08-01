@@ -1,4 +1,5 @@
 import { plural } from '../lib/format'
+import type { TopicMaterials } from '../lib/materials'
 import Icon from './Icon'
 import TopicRow from './TopicRow'
 import type { ChapterWithSlug } from '../types'
@@ -15,11 +16,15 @@ function ChapterTopics({
   chapter,
   delay,
   board,
+  materials,
 }: {
   chapter: ChapterWithSlug
   delay: number
   /** Доска обсуждения главы (Excalidraw, Miro или скриншот) — из встречи. */
   board?: string
+  /** Спикеры и ссылки по темам: часть из них живёт не в главе, а в заявках
+      и встречах (`lib/materials.ts`). */
+  materials?: Record<string, TopicMaterials>
 }) {
   const count = chapter.topics.length
   const boardLabel = `Доска обсуждения главы ${chapter.order}`
@@ -64,7 +69,12 @@ function ChapterTopics({
       ) : (
         <ul className="divide-y divide-line">
           {chapter.topics.map((topic, i) => (
-            <TopicRow key={topic.id} topic={topic} index={i} />
+            <TopicRow
+              key={topic.id}
+              topic={topic}
+              index={i}
+              materials={materials?.[topic.id]}
+            />
           ))}
         </ul>
       )}

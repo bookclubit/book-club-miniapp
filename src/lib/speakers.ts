@@ -1,5 +1,6 @@
 import { bookFolderById, type ChapterTopics, type TopicClaim } from './api'
 import { eventProgram, isArchived } from './events'
+import { findTopicEvent } from './materials'
 import type { ClubEvent, IndexSpeaker, LiveTalkEvent, Topic } from '../types'
 
 // Доклад спикера с контекстом встречи — для профиля спикера.
@@ -35,8 +36,13 @@ function topicMatchesSpeaker(topic: Topic, speaker: IndexSpeaker): boolean {
   )
 }
 
-// Встреча заявки: если главу делят на несколько эфиров, тема явно приписана к
-// одному из них (topic_ids). Иначе — единственная встреча по книге+главе.
+/**
+ * Встреча заявки: если главу делят на несколько эфиров, тема явно приписана
+ * к одному из них (topic_ids). Иначе — встреча по книге и главе.
+ *
+ * По одной книге НЕ ищем: тема будущей главы прилипала бы к давнему эфиру той
+ * же книги и показывалась бы в профиле состоявшимся докладом с чужой датой.
+ */
 function findEventForClaim(
   live: LiveTalkEvent[],
   c: TopicClaim,
@@ -48,26 +54,18 @@ function findEventForClaim(
     )
     if (byTopic) return byTopic
   }
-  return (
-    live.find((ev) =>
-      blocksOf(ev).some((b) => b.book_id === c.book_id && b.chapter === c.chapter),
-    ) ?? live.find((ev) => blocksOf(ev).some((b) => b.book_id === c.book_id))
+  return live.find((ev) =>
+    blocksOf(ev).some((b) => b.book_id === c.book_id && b.chapter === c.chapter),
   )
 }
 
-// Встреча темы главы: сопоставляем по папке книги (в событии book_id — id из
-// meta) и слагу главы, точнее — по явному списку тем эфира.
+// Встреча темы главы — тем же правилом, что и на странице книги.
 function findEventForTopic(
   live: LiveTalkEvent[],
   chapter: ChapterTopics,
   topic: Topic,
 ): LiveTalkEvent | undefined {
-  const blocksOfBook = (ev: LiveTalkEvent) =>
-    eventProgram(ev).filter((b) => bookFolderById(b.book_id) === chapter.bookFolder)
-  return (
-    live.find((ev) => blocksOfBook(ev).some((b) => b.topic_ids?.includes(topic.id))) ??
-    live.find((ev) => blocksOfBook(ev).some((b) => b.chapter === chapter.chapterSlug))
-  )
+  return findTopicEvent(live, chapter.bookFolder, chapter.chapterSlug, topic.id)
 }
 
 /**

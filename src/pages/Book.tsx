@@ -12,13 +12,16 @@ import {
   bookFolderById,
   fetchBooks,
   fetchChapters,
+  fetchClaims,
   fetchEvents,
   fetchFlashcards,
   fetchIndex,
+  fetchPublishedSlides,
   mediaUrl,
 } from '../lib/api'
-import type { BookWithFolder } from '../lib/api'
+import type { BookWithFolder, TopicClaim } from '../lib/api'
 import { authorKey } from '../lib/authors'
+import { topicMaterials, type TopicMaterials } from '../lib/materials'
 import type { ChapterWithSlug, ClubEvent, ContentIndex, Flashcard } from '../types'
 
 // Страница книги: обложка с кнопкой колоды, авторы, описание и все главы
@@ -41,9 +44,22 @@ function Book() {
   )
   // Реестр нужен темам: по нему находятся аватарки спикеров и их страницы.
   useSWR<ContentIndex>('index', fetchIndex)
-  // Встречи — ради досок обсуждений: доска задаётся у встречи по главе.
-  // Ключ общий с главной и встречами, поэтому обычно берётся из кэша.
+  // Встречи — ради досок обсуждений и монтажных роликов докладов (и то и другое
+  // задаётся у встречи, а не в главе). Ключ общий с главной и встречами.
   const events = useSWR<ClubEvent[]>('events', fetchEvents)
+  // Заявки — ради спикеров и слайдов: свежие доклады записаны в D1 бота,
+  // а не в chapter.json. Недоступность бота не должна ломать страницу книги.
+  const claims = useSWR<TopicClaim[]>('topic-claims', fetchClaims)
+
+  // Слайды доклада живут в заявке, но ссылка работает только после мержа PR
+  // спикера — до него боевой адрес отдаёт 404, поэтому проверяем принятые.
+  const slideUrls = (claims.data ?? [])
+    .map((c) => c.slides_url)
+    .filter((u): u is string => Boolean(u))
+  const publishedSlides = useSWR<Set<string>>(
+    slideUrls.length > 0 ? `slides-published:${slideUrls.join(',')}` : null,
+    () => fetchPublishedSlides(slideUrls),
+  )
 
   // Ссылки на главу и тему — якоря этой страницы (#slug, #topicId). Прокрутить
   // можно только когда главы уже в DOM, а рисуются они после загрузки И мет,
@@ -68,6 +84,26 @@ function Book() {
     }
     return found
   }, [events.data, bookId])
+
+  // Спикеры и ссылки по темам: тема в book-club-data знает только то, что
+  // вписали руками, поэтому дополняем её заявками (спикер, слайды) и монтажными
+  // роликами встречи — иначе страница книги молчит о докладе, который уже виден
+  // в профиле спикера.
+  const materials = useMemo(() => {
+    const found: Record<string, TopicMaterials> = {}
+    for (const chapter of chapters.data ?? []) {
+      for (const topic of chapter.topics) {
+        found[topic.id] = topicMaterials(topic, {
+          events: events.data,
+          claims: claims.data,
+          bookFolder: bookId,
+          chapterSlug: chapter.slug,
+          publishedSlides: publishedSlides.data,
+        })
+      }
+    }
+    return found
+  }, [chapters.data, events.data, claims.data, bookId, publishedSlides.data])
 
   if (!bookId) return <ErrorState message="Не указана книга." />
 
@@ -196,6 +232,7 @@ function Book() {
                       chapter={chapter}
                       delay={i * 60}
                       board={boards[chapter.slug]}
+                      materials={materials}
                     />
                   ))}
                 </div>

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import useSWR from 'swr'
 import MaterialLinks, { type Material } from './MaterialLinks'
 import { fetchIndex, matchSpeaker, mediaUrl } from '../lib/api'
+import type { TopicMaterials } from '../lib/materials'
 import type { ContentIndex, Topic } from '../types'
 
 /**
@@ -60,18 +61,18 @@ function hostLabel(url: string): string {
   }
 }
 
-function materials(topic: Topic): Material[] {
+function materialLinks(materials: TopicMaterials): Material[] {
   return [
-    ...(topic.video_youtube
-      ? [{ kind: 'youtube' as const, href: topic.video_youtube, label: 'Запись на YouTube' }]
+    ...(materials.youtube
+      ? [{ kind: 'youtube' as const, href: materials.youtube, label: 'Запись на YouTube' }]
       : []),
-    ...(topic.video_vk
-      ? [{ kind: 'vk' as const, href: topic.video_vk, label: 'Запись в VK' }]
+    ...(materials.vk
+      ? [{ kind: 'vk' as const, href: materials.vk, label: 'Запись в VK' }]
       : []),
-    ...(topic.presentation
-      ? [{ kind: 'slides' as const, href: topic.presentation, label: 'Презентация' }]
+    ...(materials.slidesUrl
+      ? [{ kind: 'slides' as const, href: materials.slidesUrl, label: 'Презентация' }]
       : []),
-    ...(topic.resources ?? []).map((url) => ({
+    ...materials.resources.map((url) => ({
       kind: 'link' as const,
       href: url,
       label: hostLabel(url),
@@ -82,12 +83,31 @@ function materials(topic: Topic): Material[] {
 /**
  * Тема главы одной строкой: название с материалами, спикер второй строкой.
  * Номера у темы нет — порядок задаёт сам список.
+ *
+ * `materials` приходит со страницы: спикер и монтажный ролик доклада живут
+ * не в теме, а в заявках и во встрече. Без них строка молчала бы о докладе,
+ * который в профиле спикера уже виден.
  */
-function TopicRow({ topic, index }: { topic: Topic; index: number }) {
+function TopicRow({
+  topic,
+  index,
+  materials,
+}: {
+  topic: Topic
+  index: number
+  materials?: TopicMaterials
+}) {
   // Списки могут отсутствовать: файл главы правили руками или CDN отдал версию
   // до перехода на новую схему. Тогда показываем тему одним названием.
-  const speakers = topic.speakers ?? []
-  const links = materials(topic)
+  const merged = materials ?? {
+    speakers: topic.speakers ?? [],
+    youtube: topic.video_youtube || undefined,
+    vk: topic.video_vk || undefined,
+    slidesUrl: topic.presentation || undefined,
+    resources: topic.resources ?? [],
+  }
+  const speakers = merged.speakers
+  const links = materialLinks(merged)
 
   return (
     <li
