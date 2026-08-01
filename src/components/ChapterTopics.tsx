@@ -113,20 +113,21 @@ function ChapterTopics({
           onClick={onToggle}
           aria-expanded={open}
           aria-controls={listId}
-          className="group -my-1 flex min-w-0 items-start gap-2 py-1 text-left"
+          className="group -my-1 min-w-0 py-1 text-left"
         >
-          <Icon
-            name="chevron"
-            size={16}
-            className={`mt-5 shrink-0 text-ink-faint transition-transform duration-200 group-hover:text-accent ${
-              open ? '' : '-rotate-90'
-            }`}
-          />
-          <span className="min-w-0">
-            <span className="eyebrow block">Глава {chapter.order}</span>
-            <span className="font-display mt-1 block text-xl font-semibold leading-snug text-ink transition-colors duration-200 group-hover:text-accent">
-              {chapter.title}
-            </span>
+          <span className="eyebrow block">Глава {chapter.order}</span>
+          <span className="font-display relative mt-1 block text-xl font-semibold leading-snug text-ink transition-colors duration-200 group-hover:text-accent">
+            {/* Стрелка вынесена из потока на левое поле: в потоке она сдвигала
+                заголовок главы вправо, и он переставал быть вровень с темами.
+                Отступ разный: на узком экране поля страницы меньше. */}
+            <Icon
+              name="chevron"
+              size={16}
+              className={`absolute -left-4 top-1/2 -translate-y-1/2 text-ink-faint transition-transform duration-200 group-hover:text-accent sm:-left-6 ${
+                open ? '' : '-rotate-90'
+              }`}
+            />
+            {chapter.title}
           </span>
         </button>
 
