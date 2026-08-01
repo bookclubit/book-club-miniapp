@@ -256,6 +256,17 @@ p {
   .link-back:hover {
     color: var(--color-accent);
   }
+
+  /* Ссылка внутри строки текста: подчёркивание вместо цвета — в тёплой
+     палитре цветное слово посреди абзаца выглядит как ошибка вёрстки. */
+  .link-inline {
+    @apply font-medium text-ink-soft underline decoration-line-strong underline-offset-2;
+    transition: color 0.2s ease;
+  }
+
+  .link-inline:hover {
+    color: var(--color-accent);
+  }
 }
 
 /* --- Анимации появления --- */

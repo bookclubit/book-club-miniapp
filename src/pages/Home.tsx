@@ -32,8 +32,18 @@ function Home() {
           Читаем техническую литературу вместе
         </h1>
         <p className="mt-4 text-lg leading-relaxed text-ink-soft">
-          По главе в неделю: разбираем на встречах, делимся инсайтами
-          и закрепляем материал карточками.
+          Клуб единомышленников-фронтендеров. Каждую неделю собираемся и вместе
+          разбираем сложные технические книги: главу за главой — доклады,
+          обсуждение и карточки, чтобы прочитанное осталось в голове.
+        </p>
+        {/* Вход в клуб — строкой, а не блоком-баннером: на главной уже есть
+            ближайшие встречи и книги, ещё один призыв перетягивал внимание. */}
+        <p className="mt-3 text-sm text-ink-faint">
+          Присоединяйся: приходи на ближайшую встречу или{' '}
+          <Link to="/join" className="link-inline">
+            возьми тему и выступи с докладом
+          </Link>
+          .
         </p>
         <SocialLinks />
       </section>
@@ -80,26 +90,6 @@ function Home() {
       </section>
 
       <section className="reveal mt-14" style={{ '--reveal-delay': '200ms' } as React.CSSProperties}>
-        <div className="card flex flex-col items-start gap-5 border-transparent bg-accent-soft sm:flex-row sm:items-center sm:justify-between">
-          <div className="max-w-xl">
-            <div className="flex items-center gap-2 text-accent">
-              <Icon name="mic" size={20} />
-              <h2 className="font-display text-2xl font-semibold text-ink">Стать спикером</h2>
-            </div>
-            <p className="mt-2 text-ink-soft">
-              Возьми тему из плана главы, разбери её на встрече — а презентацию клуб
-              соберёт за тебя из шаблона. Новым участникам — заявка с рассказом о себе,
-              её одобрит админ.
-            </p>
-          </div>
-          <Link to="/join" className="btn-primary shrink-0 px-5 py-2.5 text-sm">
-            <Icon name="mic" size={16} />
-            Хочу выступить
-          </Link>
-        </div>
-      </section>
-
-      <section className="reveal mt-14" style={{ '--reveal-delay': '280ms' } as React.CSSProperties}>
         <div className="flex items-baseline justify-between">
           <h2 className="font-display text-2xl font-semibold text-ink">Сейчас читаем</h2>
           <Link to="/books" className="link-back group text-sm">
