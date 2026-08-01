@@ -21,7 +21,12 @@ import {
 } from '../lib/api'
 import type { BookWithFolder, TopicClaim } from '../lib/api'
 import { authorKey } from '../lib/authors'
-import { topicMaterials, type TopicMaterials } from '../lib/materials'
+import {
+  chapterBroadcasts,
+  topicMaterials,
+  type ChapterBroadcast,
+  type TopicMaterials,
+} from '../lib/materials'
 import type { ChapterWithSlug, ClubEvent, ContentIndex, Flashcard } from '../types'
 
 // Страница книги: обложка с кнопкой колоды, авторы, описание и все главы
@@ -31,6 +36,9 @@ function Book() {
   const { hash } = useLocation()
   // Фильтр по главе: 'all' или slug главы.
   const [only, setOnly] = useState('all')
+  // Свёрнутые главы. По умолчанию раскрыты все: страница книги — про темы,
+  // а не про оглавление; хранить приходится свёрнутые, а не раскрытые.
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
   // Единый кэш книг с Home/Books: мета не грузится второй раз по своему ключу.
   const books = useSWR<BookWithFolder[]>('books', fetchBooks)
@@ -68,8 +76,22 @@ function Book() {
   const ready = Boolean(books.data && chapters.data)
   useEffect(() => {
     if (!hash || !ready) return
-    document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView()
-  }, [hash, ready])
+    const id = decodeURIComponent(hash.slice(1))
+    // Ссылка может вести в свёрнутую главу (в том числе на тему внутри неё) —
+    // тогда раскрываем её, иначе прокручивать было бы не к чему.
+    const target = (chapters.data ?? []).find(
+      (c) => c.slug === id || c.topics.some((t) => t.id === id),
+    )
+    if (target) {
+      setCollapsed((prev) => {
+        if (!prev.has(target.slug)) return prev
+        const next = new Set(prev)
+        next.delete(target.slug)
+        return next
+      })
+    }
+    document.getElementById(id)?.scrollIntoView()
+  }, [hash, ready, chapters.data])
 
   // Доски по главам: slug главы → ссылка. Доска живёт во встрече (её задают
   // при создании обсуждения), а нужна рядом с главой. Книга во встрече указана
@@ -85,6 +107,16 @@ function Book() {
     }
     return found
   }, [events.data, bookId])
+
+  // Записи трансляций по главам: встреча по главе бывает не одна, поэтому
+  // у главы список — в заголовке он превращается в пронумерованные пары ссылок.
+  const broadcasts = useMemo(() => {
+    const found: Record<string, ChapterBroadcast[]> = {}
+    for (const chapter of chapters.data ?? []) {
+      found[chapter.slug] = chapterBroadcasts(events.data ?? [], bookId, chapter.slug)
+    }
+    return found
+  }, [chapters.data, events.data, bookId])
 
   // Спикеры и ссылки по темам: тема в book-club-data знает только то, что
   // вписали руками, поэтому дополняем её заявками (спикер, слайды) и монтажными
@@ -234,7 +266,17 @@ function Book() {
                       chapter={chapter}
                       delay={i * 60}
                       board={boards[chapter.slug]}
+                      broadcasts={broadcasts[chapter.slug]}
                       materials={materials}
+                      open={!collapsed.has(chapter.slug)}
+                      onToggle={() =>
+                        setCollapsed((prev) => {
+                          const next = new Set(prev)
+                          if (next.has(chapter.slug)) next.delete(chapter.slug)
+                          else next.add(chapter.slug)
+                          return next
+                        })
+                      }
                     />
                   ))}
                 </div>

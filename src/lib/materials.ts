@@ -39,6 +39,45 @@ export function findTopicEvent(
   )
 }
 
+/** Прошедшая встреча по главе с записью трансляции — для заголовка главы. */
+export interface ChapterBroadcast {
+  eventId: string
+  title: string
+  date: string
+  youtube?: string
+  vk?: string
+}
+
+/**
+ * Записи трансляций главы: у главы бывает несколько встреч (главу делят на
+ * части, обсуждение и доклады — разные вечера), поэтому это список, а не пара
+ * ссылок. Порядок — по дате, как шли встречи: по нему в заголовке нумеруются
+ * части. Будущие встречи не берём — записи у них ещё нет.
+ */
+export function chapterBroadcasts(
+  events: ClubEvent[],
+  bookFolder: string | undefined,
+  chapterSlug: string,
+): ChapterBroadcast[] {
+  const covers = (event: ClubEvent) =>
+    event.type === 'closed-chapter'
+      ? bookFolderById(event.book_id) === bookFolder && event.chapter === chapterSlug
+      : eventProgram(event).some(
+          (b) => bookFolderById(b.book_id) === bookFolder && b.chapter === chapterSlug,
+        )
+
+  return events
+    .filter((e) => covers(e) && isArchived(e) && (e.streams?.youtube || e.streams?.vk))
+    .map((e) => ({
+      eventId: e.id,
+      title: e.title,
+      date: e.date,
+      youtube: e.streams?.youtube,
+      vk: e.streams?.vk,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+}
+
 /** Монтажный ролик доклада (вносит админ у встречи), не запись всего эфира. */
 export function topicRecording(
   events: ClubEvent[],

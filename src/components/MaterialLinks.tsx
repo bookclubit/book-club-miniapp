@@ -42,6 +42,22 @@ const GLYPHS: Record<MaterialKind, { node: React.ReactNode; size: number }> = {
   },
 }
 
+/** Тот же глиф без ссылки — как метка платформы (см. записи трансляций главы). */
+export function MaterialGlyph({ kind }: { kind: MaterialKind }) {
+  const glyph = GLYPHS[kind]
+  return (
+    <svg
+      aria-hidden="true"
+      width={glyph.size}
+      height={glyph.size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+    >
+      {glyph.node}
+    </svg>
+  )
+}
+
 /**
  * Материалы темы или доклада — иконками. Одни и те же ссылки показываются
  * и на странице главы, и в профиле спикера, поэтому набор иконок общий:

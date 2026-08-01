@@ -21,6 +21,7 @@ export type IconName =
   | 'users'
   | 'mic'
   | 'board'
+  | 'chevron'
 
 const PATHS: Record<IconName, React.ReactNode> = {
   'arrow-left': <path d="M15.5 19 8 12l7.5-7" />,
@@ -104,6 +105,8 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" />
     </>
   ),
+  // Раскрыть/свернуть главу: короткая «птичка», повёрнутая через rotate.
+  chevron: <path d="M6 9.5 12 15.5 18 9.5" />,
   // Доска обсуждения — рамка с наброском: одна размашистая линия внутри.
   // Мелкие детали (схема из блоков) на 17–18px рассыпались в кашу, стойка
   // читалась как презентация (глиф `slides` в MaterialLinks).
