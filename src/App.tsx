@@ -44,7 +44,9 @@ function ScrollToTop() {
 function AnimatedRoutes() {
   const { pathname } = useLocation()
   return (
-    <main key={pathname}>
+    // Отступ снизу — вместо убранного футера: на мобильных под контентом стоит
+    // фиксированный таб-бар, и без него низ страницы уходил бы под него.
+    <main key={pathname} className="pb-24 sm:pb-10">
       <ErrorBoundary>
         <Suspense
           fallback={
@@ -82,19 +84,6 @@ function App() {
         <ScrollToTop />
         <Header />
         <AnimatedRoutes />
-        <footer className="mx-auto max-w-5xl px-4 pb-28 pt-16 sm:px-6 sm:pb-10">
-        <p className="border-t border-line pt-5 text-xs text-ink-faint">
-          Данные клуба открыты на{' '}
-          <a
-            href="https://github.com/bookclubit/book-club-data"
-            target="_blank"
-            rel="noreferrer"
-            className="font-medium text-ink-soft underline decoration-line-strong underline-offset-2 transition-colors hover:text-accent"
-          >
-            GitHub
-          </a>
-        </p>
-        </footer>
         <BottomNav />
       </AuthProvider>
     </BrowserRouter>
