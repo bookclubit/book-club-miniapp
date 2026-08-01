@@ -305,8 +305,8 @@ function TopicPicker({ name }: { name: string | null }) {
   return (
     <section className="reveal mt-8" style={{ '--reveal-delay': '60ms' } as React.CSSProperties}>
       <p className="text-ink-soft">
-        {name ? `${name}, ты` : 'Ты'} участник клуба — выбирай свободную тему из плана.
-        Презентацию клуб соберёт из шаблона, останется наполнить слайды.
+        {name ? `${name}, выбирай` : 'Выбирай'} свободную тему. Презентацию клуб
+        соберёт из шаблона.
       </p>
 
       {failure ? <p className="mt-4 text-sm text-danger">{failure}</p> : null}
