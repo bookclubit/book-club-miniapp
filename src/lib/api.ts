@@ -1,4 +1,4 @@
-import { isPast } from './format'
+import { isArchived } from './events'
 import type {
   BookMeta,
   Chapter,
@@ -154,7 +154,7 @@ export async function fetchPlanSlots(): Promise<PlanSlot[]> {
   const [events, claims] = await Promise.all([fetchEvents(), fetchClaims()])
   const taken = new Set(claims.map((c) => c.topic_id).filter(Boolean))
   const upcoming = events.filter(
-    (e) => e.type === 'live-talk' && !e.finished && !isPast(e.date) && e.book_id && e.chapter,
+    (e) => e.type === 'live-talk' && !isArchived(e) && e.book_id && e.chapter,
   )
 
   const slots: PlanSlot[] = []

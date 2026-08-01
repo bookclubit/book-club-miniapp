@@ -37,11 +37,32 @@ export function isPast(date: string): boolean {
   return date < iso
 }
 
-// Встреча уже началась? Дата+время трактуются как МСК (UTC+3) — сравнение
-// абсолютных моментов, поэтому корректно в любом часовом поясе зрителя.
+// Начало встречи как абсолютный момент: дата+время в данных — МСК (UTC+3),
+// поэтому сравнение корректно в любом часовом поясе зрителя. Время может быть
+// не указано или битым — тогда момента нет.
+function startedAt(date: string, time?: string): number | null {
+  if (!time || !/^\d{1,2}:\d{2}$/.test(time)) return null
+  const start = new Date(`${date}T${time.padStart(5, '0')}:00+03:00`)
+  return Number.isNaN(start.getTime()) ? null : start.getTime()
+}
+
+// Встреча уже началась?
 export function hasStarted(date: string, time?: string): boolean {
-  const t = time && /^\d{1,2}:\d{2}$/.test(time) ? time.padStart(5, '0') : '00:00'
-  const start = new Date(`${date}T${t}:00+03:00`)
-  if (Number.isNaN(start.getTime())) return isPast(date)
-  return Date.now() >= start.getTime()
+  const start = startedAt(date, time)
+  if (start === null) return isPast(date)
+  return Date.now() >= start
+}
+
+/**
+ * Сколько часов после начала встреча считается идущей. Времени окончания
+ * в данных нет, а созвон клуба редко тянется дольше.
+ */
+export const EVENT_HOURS = 4
+
+// Встреча закончилась: прошло EVENT_HOURS с начала. Без времени начала
+// (или с битым) — по дате, то есть на следующий день.
+export function hasEnded(date: string, time?: string): boolean {
+  const start = startedAt(date, time)
+  if (start === null) return isPast(date)
+  return Date.now() >= start + EVENT_HOURS * 60 * 60 * 1000
 }

@@ -1,5 +1,5 @@
 import { bookFolderById, type ChapterTopics, type TopicClaim } from './api'
-import { isPast } from './format'
+import { isArchived } from './events'
 import type { ClubEvent, IndexSpeaker, LiveTalkEvent, Topic } from '../types'
 
 // Доклад спикера с контекстом встречи — для профиля спикера.
@@ -95,9 +95,9 @@ export function collectSpeakerTalks(
     if (!claimMatchesSpeaker(c, speaker)) continue
     const e = findEventForClaim(live, c)
     if (!e) continue
-    // Доклад показываем только после того, как встреча прошла (завершена
-    // админом или дата уже позади) — будущие/текущие в профиль не попадают.
-    if (!e.finished && !isPast(e.date)) continue
+    // Доклад показываем только после того, как встреча прошла (`isArchived` —
+    // общее правило) — будущие и идущие в профиль не попадают.
+    if (!isArchived(e)) continue
     const key = c.topic_id ?? `${e.id}:${c.topic_title}`
     if (byKey.has(key)) continue
     // Монтажный ролик именно этого доклада (вносит админ), не запись встречи.
@@ -111,7 +111,7 @@ export function collectSpeakerTalks(
       slidesUrl: c.slides_url ?? undefined,
       youtube: recording?.youtube,
       vk: recording?.vk,
-      finished: Boolean(e.finished),
+      finished: isArchived(e),
       pending: c.status !== 'confirmed',
     })
   }
@@ -128,7 +128,7 @@ export function collectSpeakerTalks(
       const event = findEventForTopic(live, chapter, topic)
       const happened =
         Boolean(materials.youtube || materials.vk || materials.slidesUrl) ||
-        Boolean(event && (event.finished || isPast(event.date)))
+        Boolean(event && isArchived(event))
       // Тема закреплена за спикером на будущий эфир — это ещё не доклад.
       if (!happened) continue
 
@@ -153,7 +153,7 @@ export function collectSpeakerTalks(
         talkTitle: topic.title,
         ...materials,
         // Есть материалы — доклад состоялся, даже если события за главу нет.
-        finished: event ? Boolean(event.finished) : true,
+        finished: event ? isArchived(event) : true,
       })
     }
   }

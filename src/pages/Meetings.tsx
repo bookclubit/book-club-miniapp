@@ -9,6 +9,7 @@ import Loading from '../components/Loading'
 import Tabs from '../components/Tabs'
 import { bookTitleById, fetchClaims, fetchEvents, fetchIndex } from '../lib/api'
 import type { TopicClaim } from '../lib/api'
+import { isArchived } from '../lib/events'
 import type { ClubEvent, ContentIndex } from '../types'
 
 type Tab = 'plan' | 'archive'
@@ -28,9 +29,10 @@ function Meetings() {
   const [year, setYear] = useState<string>('all')
   const [order, setOrder] = useState<Order>('old')
 
-  // Завершённые (явный флаг) — в архив, остальные — в план.
-  const plan = (events ?? []).filter((e) => !e.finished)
-  const archive = (events ?? []).filter((e) => e.finished)
+  // Прошедшие — в архив, остальные — в план. Правило одно на всё приложение
+  // (`isArchived`): ждать флага админа не нужно, встреча уходит сама.
+  const plan = (events ?? []).filter((e) => !isArchived(e))
+  const archive = (events ?? []).filter((e) => isArchived(e))
   const tabEvents = tab === 'plan' ? plan : archive
 
   // Варианты фильтров считаем по всей вкладке, а не по отфильтрованному списку:

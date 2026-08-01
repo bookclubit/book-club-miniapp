@@ -9,6 +9,7 @@ import Loading from '../components/Loading'
 import SocialLinks from '../components/SocialLinks'
 import { fetchBooks, fetchClaims, fetchEvents } from '../lib/api'
 import type { BookWithFolder, TopicClaim } from '../lib/api'
+import { isArchived } from '../lib/events'
 import type { ClubEvent } from '../types'
 
 // Главная: интро с соцсетями, ближайшие встречи и текущая книга из book-club-data.
@@ -20,12 +21,9 @@ function Home() {
 
   const reading = books.data?.filter(({ meta }) => meta.status === 'reading') ?? []
 
-  // Ближайшие встречи — как на вкладке «Встречи»: не ушедшие в архив (finished),
-  // из будущих по дате (events уже отсортированы), максимум две.
-  const today = new Date().toISOString().slice(0, 10)
-  const upcoming = (events.data ?? [])
-    .filter((e) => !e.finished && e.date >= today)
-    .slice(0, 2)
+  // Ближайшие встречи — тем же правилом, что и вкладка «Встречи» (`isArchived`),
+  // иначе главная и вкладка расходятся. Events уже отсортированы, берём две.
+  const upcoming = (events.data ?? []).filter((e) => !isArchived(e)).slice(0, 2)
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">

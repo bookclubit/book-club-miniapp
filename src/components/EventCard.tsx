@@ -1,5 +1,6 @@
 import { bookTitleById, mediaUrl } from '../lib/api'
-import { formatEventDate, formatWeekday, isPast } from '../lib/format'
+import { isArchived } from '../lib/events'
+import { formatEventDate, formatWeekday } from '../lib/format'
 import ClubAvatar from './ClubAvatar'
 import Icon from './Icon'
 import { EVENT_TYPE_LABEL } from '../types'
@@ -24,7 +25,7 @@ interface EventCardProps {
 // Карточка встречи: открытое обсуждение главы или доклады (запись докладов).
 // У будущих — «Пойду» и ссылки; у прошедших/завершённых — записи трансляций.
 function EventCard({ event, topicSlots, topicSlotsNote }: EventCardProps) {
-  const done = event.finished || isPast(event.date)
+  const done = isArchived(event)
   const kind = EVENT_TYPE_LABEL[event.type]
   const streamName = event.stream ? `Книжный клуб ${event.stream}` : null
   const bookTitle = bookTitleById(event.book_id)
