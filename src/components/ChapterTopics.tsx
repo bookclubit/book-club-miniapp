@@ -1,4 +1,5 @@
 import { plural } from '../lib/format'
+import Icon from './Icon'
 import TopicRow from './TopicRow'
 import type { ChapterWithSlug } from '../types'
 
@@ -10,8 +11,18 @@ import type { ChapterWithSlug } from '../types'
  * Без рамок и карточек: главу держит заголовок с подчёркиванием и воздух
  * между главами, а темы разделены тонкими линиями.
  */
-function ChapterTopics({ chapter, delay }: { chapter: ChapterWithSlug; delay: number }) {
+function ChapterTopics({
+  chapter,
+  delay,
+  board,
+}: {
+  chapter: ChapterWithSlug
+  delay: number
+  /** Доска обсуждения главы (Excalidraw, Miro или скриншот) — из встречи. */
+  board?: string
+}) {
   const count = chapter.topics.length
+  const boardLabel = `Доска обсуждения главы ${chapter.order}`
 
   return (
     <section
@@ -26,11 +37,26 @@ function ChapterTopics({ chapter, delay }: { chapter: ChapterWithSlug; delay: nu
             {chapter.title}
           </h2>
         </div>
-        {count > 0 ? (
-          <span className="shrink-0 pb-0.5 text-xs text-ink-faint">
-            {count} {plural(count, 'тема', 'темы', 'тем')}
-          </span>
-        ) : null}
+        {/* Доска — у главы, а не у темы: на обсуждении её рисуют на всю главу. */}
+        <div className="flex shrink-0 items-center gap-2 pb-0.5">
+          {count > 0 ? (
+            <span className="text-xs text-ink-faint">
+              {count} {plural(count, 'тема', 'темы', 'тем')}
+            </span>
+          ) : null}
+          {board ? (
+            <a
+              href={board}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={boardLabel}
+              title={boardLabel}
+              className="icon-link -my-1"
+            >
+              <Icon name="board" size={19} />
+            </a>
+          ) : null}
+        </div>
       </header>
 
       {count === 0 ? (

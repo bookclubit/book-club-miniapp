@@ -20,6 +20,7 @@ export type IconName =
   | 'home'
   | 'users'
   | 'mic'
+  | 'board'
 
 const PATHS: Record<IconName, React.ReactNode> = {
   'arrow-left': <path d="M15.5 19 8 12l7.5-7" />,
@@ -101,6 +102,15 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <rect x="9" y="2.5" width="6" height="11" rx="3" />
       <path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" />
+    </>
+  ),
+  // Доска обсуждения — рамка с наброском: одна размашистая линия внутри.
+  // Мелкие детали (схема из блоков) на 17–18px рассыпались в кашу, стойка
+  // читалась как презентация (глиф `slides` в MaterialLinks).
+  board: (
+    <>
+      <rect x="2.5" y="4" width="19" height="16" rx="2.5" />
+      <path d="M6.5 15c1.8-6 4-6.5 5.6-2.2 1.2 3.3 3 3.2 5.4-2.3" />
     </>
   ),
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import useSWR from 'swr'
 import AddBookToDeck from '../components/AddBookToDeck'
@@ -9,16 +9,17 @@ import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import Pill from '../components/Pill'
 import {
+  bookFolderById,
   fetchBooks,
   fetchChapters,
+  fetchEvents,
   fetchFlashcards,
   fetchIndex,
   mediaUrl,
 } from '../lib/api'
 import type { BookWithFolder } from '../lib/api'
 import { authorKey } from '../lib/authors'
-import { plural } from '../lib/format'
-import type { ChapterWithSlug, ContentIndex, Flashcard } from '../types'
+import type { ChapterWithSlug, ClubEvent, ContentIndex, Flashcard } from '../types'
 
 // Страница книги: обложка с кнопкой колоды, авторы, описание и все главы
 // с темами на этой же странице (отдельных страниц у глав нет).
@@ -40,6 +41,9 @@ function Book() {
   )
   // Реестр нужен темам: по нему находятся аватарки спикеров и их страницы.
   useSWR<ContentIndex>('index', fetchIndex)
+  // Встречи — ради досок обсуждений: доска задаётся у встречи по главе.
+  // Ключ общий с главной и встречами, поэтому обычно берётся из кэша.
+  const events = useSWR<ClubEvent[]>('events', fetchEvents)
 
   // Ссылки на главу и тему — якоря этой страницы (#slug, #topicId). Прокрутить
   // можно только когда главы уже в DOM, а рисуются они после загрузки И мет,
@@ -50,16 +54,27 @@ function Book() {
     document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView()
   }, [hash, ready])
 
+  // Доски по главам: slug главы → ссылка. Доска живёт во встрече (её задают
+  // при создании обсуждения), а нужна рядом с главой. Книга во встрече указана
+  // как id из meta, в маршруте — папкой, поэтому сверяем через bookFolderById.
+  // Встречи отсортированы по дате, так что при нескольких обсуждениях главы
+  // остаётся доска последнего.
+  const boards = useMemo(() => {
+    const found: Record<string, string> = {}
+    for (const event of events.data ?? []) {
+      if (event.type !== 'closed-chapter' || !event.notes_board_url) continue
+      if (bookFolderById(event.book_id) !== bookId) continue
+      found[event.chapter] = event.notes_board_url
+    }
+    return found
+  }, [events.data, bookId])
+
   if (!bookId) return <ErrorState message="Не указана книга." />
 
   const meta = books.data?.find((b) => b.folder === bookId)?.meta
   const isLoading = books.isLoading || chapters.isLoading
   const error = books.error || chapters.error
   const cardCount = cards.data?.length ?? 0
-  // Разобранная глава — та, у которой есть темы (пустые заготовки не в счёт):
-  // так же считает прогресс в readingProgress (карточки книг), цифры
-  // не должны расходиться.
-  const done = (chapters.data ?? []).filter((c) => c.topics.length > 0).length
 
   const shown = chapters.data ?? []
   // Выбранная глава могла пропасть (перешли на другую книгу) — тогда снова все.
@@ -139,13 +154,6 @@ function Book() {
                 <p className="mt-4 max-w-2xl leading-relaxed text-ink-soft">
                   {meta.description}
                 </p>
-
-                {/* Прогресс — строкой текста, без шкалы: полоса перегружала
-                    шапку, а цифры и так всё говорят. */}
-                <p className="mt-4 text-sm text-ink-faint">
-                  Разобрано {done} из {meta.total_chapters}{' '}
-                  {plural(meta.total_chapters, 'главы', 'глав', 'глав')}
-                </p>
               </div>
             </header>
           ) : null}
@@ -183,7 +191,12 @@ function Book() {
               ) : (
                 <div className="space-y-14">
                   {visible.map((chapter, i) => (
-                    <ChapterTopics key={chapter.slug} chapter={chapter} delay={i * 60} />
+                    <ChapterTopics
+                      key={chapter.slug}
+                      chapter={chapter}
+                      delay={i * 60}
+                      board={boards[chapter.slug]}
+                    />
                   ))}
                 </div>
               )}
