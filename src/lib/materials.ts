@@ -1,6 +1,6 @@
-import { bookFolderById, type TopicClaim } from './api'
+import { bookFolderById, matchSpeaker, type TopicClaim } from './api'
 import { eventProgram, isArchived } from './events'
-import type { ClubEvent, LiveTalkEvent, Topic } from '../types'
+import type { ClubEvent, IndexSpeaker, LiveTalkEvent, Topic } from '../types'
 
 /**
  * Материалы темы собираются из двух мест, и это не случайность: сама тема
@@ -51,6 +51,22 @@ export function topicRecording(
 }
 
 /**
+ * Список имён без повторов одного человека: имя из реестра и его алиас
+ * («Антон» и «Антон Помазков») — одна запись, первая по порядку.
+ */
+export function dedupeSpeakers(names: string[], registry: IndexSpeaker[]): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const name of names) {
+    const key = matchSpeaker(registry, name)?.id ?? name.trim().toLowerCase()
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    out.push(name)
+  }
+  return out
+}
+
+/**
  * Тема со всем, что о ней известно клубу. Порядок источников: то, что вписано
  * в саму тему, важнее — это ручная правка админа; оперативные данные дополняют.
  */
@@ -63,6 +79,8 @@ export function topicMaterials(
     chapterSlug: string
     /** Принятые презентации: до мержа PR боевой адрес слайдов отдаёт 404. */
     publishedSlides?: Set<string>
+    /** Каталог спикеров: по нему «Антон» и «Антон Помазков» — один человек. */
+    registry?: IndexSpeaker[]
   },
 ): TopicMaterials {
   const event = findTopicEvent(ctx.events ?? [], ctx.bookFolder, ctx.chapterSlug, topic.id)
@@ -75,8 +93,14 @@ export function topicMaterials(
       ? (ctx.claims ?? []).find((c) => c.topic_id === topic.id && c.status === 'confirmed')
       : undefined
 
-  const speakers = [...(topic.speakers ?? [])]
-  if (claim && !speakers.includes(claim.speaker)) speakers.push(claim.speaker)
+  // В теме спикер записан как придётся («Антон»), в заявке — полным именем
+  // («Антон Помазков»): сравнивать строки нельзя, иначе один человек попадал
+  // в строку дважды (в списке обе записи всё равно показываются полным именем
+  // из реестра). Сводим по каталожному спикеру, а незнакомых — по имени.
+  const speakers = dedupeSpeakers(
+    claim ? [...(topic.speakers ?? []), claim.speaker] : (topic.speakers ?? []),
+    ctx.registry ?? [],
+  )
 
   const claimSlides =
     claim?.slides_url && (!ctx.publishedSlides || ctx.publishedSlides.has(claim.slides_url))

@@ -42,8 +42,9 @@ function Book() {
     bookId ? `flashcards:${bookId}` : null,
     () => fetchFlashcards(bookId as string),
   )
-  // Реестр нужен темам: по нему находятся аватарки спикеров и их страницы.
-  useSWR<ContentIndex>('index', fetchIndex)
+  // Реестр нужен темам: по нему находятся аватарки спикеров, их страницы
+  // и то, что «Антон» из главы и «Антон Помазков» из заявки — один человек.
+  const index = useSWR<ContentIndex>('index', fetchIndex)
   // Встречи — ради досок обсуждений и монтажных роликов докладов (и то и другое
   // задаётся у встречи, а не в главе). Ключ общий с главной и встречами.
   const events = useSWR<ClubEvent[]>('events', fetchEvents)
@@ -99,11 +100,12 @@ function Book() {
           bookFolder: bookId,
           chapterSlug: chapter.slug,
           publishedSlides: publishedSlides.data,
+          registry: index.data?.speakers,
         })
       }
     }
     return found
-  }, [chapters.data, events.data, claims.data, bookId, publishedSlides.data])
+  }, [chapters.data, events.data, claims.data, bookId, publishedSlides.data, index.data])
 
   if (!bookId) return <ErrorState message="Не указана книга." />
 
