@@ -32,8 +32,13 @@ function Books() {
             Все книги
           </Pill>
           {BOOK_CATEGORIES.filter((c) => countBy(c.id) > 0).map((c) => (
-            <Pill key={c.id} active={filter === c.id} onClick={() => setFilter(c.id)}>
-              {c.label}
+            <Pill
+              key={c.id}
+              active={filter === c.id}
+              onClick={() => setFilter(c.id)}
+              title={c.short ? c.label : undefined}
+            >
+              {c.short ?? c.label}
             </Pill>
           ))}
         </div>
