@@ -1,9 +1,17 @@
 import useSWR from 'swr'
-import { fetchEventChapterTopics, fetchPublishedSlides, speakerAvatar } from '../lib/api'
+import { bookTitleById, fetchEventChapterTopics, fetchPublishedSlides, speakerAvatar } from '../lib/api'
 import type { TopicClaim } from '../lib/api'
+import { eventProgram } from '../lib/events'
 import type { ClubEvent, Topic } from '../types'
 import EventCard from './EventCard'
 import type { TopicSlot } from './EventCard'
+
+// Номер главы из слага папки («09-servernye-komponenty» → 9): в реестре он
+// есть, но здесь хватает самого слага — так подпись не ждёт лишней загрузки.
+function chapterOrderOf(slug: string): number | string {
+  const n = Number(slug.split('-')[0])
+  return Number.isFinite(n) ? n : slug
+}
 
 // Единый источник истины для карточки встречи с программой докладов:
 // используется и на главной, и на вкладке «Встречи», чтобы занятость тем
@@ -21,39 +29,56 @@ export function EventProgramCard({
   claimsUnavailable?: boolean
   showSlots: boolean
 }) {
-  // Для «докладов» темы главы — слоты (и в плане, и в архиве). Единый источник
-  // занятости — заявки D1 (event.talks больше не используется).
-  const isLiveTalk = event.type === 'live-talk' && Boolean(event.book_id && event.chapter)
+  // Для «докладов» темы программы — слоты (и в плане, и в архиве). Единый
+  // источник занятости — заявки D1 (event.talks больше не используется).
+  // Программа блоками: за вечер разбирают несколько глав и даже книг.
+  const blocks = eventProgram(event)
+  const isLiveTalk = event.type === 'live-talk' && blocks.length > 0
 
-  const { data: topics } = useSWR<Topic[]>(
-    isLiveTalk ? `plan-topics:${event.book_id}:${event.chapter}` : null,
-    () => fetchEventChapterTopics(event.book_id!, event.chapter!),
+  const { data: program } = useSWR<{ block: (typeof blocks)[number]; topics: Topic[] }[]>(
+    isLiveTalk
+      ? `plan-topics:${blocks.map((b) => `${b.book_id}/${b.chapter}`).join(',')}`
+      : null,
+    async () =>
+      Promise.all(
+        blocks.map(async (block) => {
+          const topics = await fetchEventChapterTopics(block.book_id, block.chapter)
+          // У блока может быть свой набор тем — если главу делят между эфирами.
+          const ids = block.topic_ids
+          return {
+            block,
+            topics: ids && ids.length > 0 ? topics.filter((t) => ids.includes(t.id)) : topics,
+          }
+        }),
+      ),
   )
 
-  // Если главу делят на несколько встреч, у встречи задан свой набор тем
-  // (topic_ids) — показываем только их. Нет набора → вся глава (одна встреча).
-  const eventTopicIds =
-    event.type === 'live-talk' ? event.topic_ids : undefined
-  const chapterTopics =
-    eventTopicIds && eventTopicIds.length > 0
-      ? topics?.filter((t) => eventTopicIds.includes(t.id))
-      : topics
+  // Подписываем главу у тем, только когда глав в программе больше одной:
+  // у обычного эфира по одной главе подпись была бы шумом.
+  const manyChapters = (program ?? []).filter((p) => p.topics.length > 0).length > 1
+  const manyBooks = new Set(blocks.map((b) => b.book_id)).size > 1
 
-  const slots: TopicSlot[] | undefined = chapterTopics?.map((topic) => {
-    const claim = claims.find((c) => c.topic_id === topic.id)
-    return {
-      id: topic.id,
-      title: topic.title,
-      speaker: claim
-        ? {
-            name: claim.speaker,
-            avatar: speakerAvatar(claim.speaker),
-            pending: claim.status !== 'confirmed',
-          }
-        : undefined,
-      slidesUrl: claim?.slides_url ?? undefined,
-    }
-  })
+  const slots: TopicSlot[] | undefined = program?.flatMap(({ block, topics }) =>
+    topics.map((topic) => {
+      const claim = claims.find((c) => c.topic_id === topic.id)
+      const bookTitle = manyBooks ? bookTitleById(block.book_id) : undefined
+      return {
+        id: topic.id,
+        title: topic.title,
+        group: manyChapters
+          ? [bookTitle, `глава ${chapterOrderOf(block.chapter)}`].filter(Boolean).join(' · ')
+          : undefined,
+        speaker: claim
+          ? {
+              name: claim.speaker,
+              avatar: speakerAvatar(claim.speaker),
+              pending: claim.status !== 'confirmed',
+            }
+          : undefined,
+        slidesUrl: claim?.slides_url ?? undefined,
+      }
+    }),
+  )
 
   // Ссылка на слайды появляется, когда презентация принята — PR спикера
   // смержен в book-club-talks (до мержа боевой URL slides_url отдаёт 404).

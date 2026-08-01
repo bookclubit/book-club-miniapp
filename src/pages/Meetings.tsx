@@ -9,7 +9,7 @@ import Loading from '../components/Loading'
 import Tabs from '../components/Tabs'
 import { bookTitleById, fetchClaims, fetchEvents, fetchIndex } from '../lib/api'
 import type { TopicClaim } from '../lib/api'
-import { isArchived } from '../lib/events'
+import { eventBookIds, isArchived } from '../lib/events'
 import type { ClubEvent, ContentIndex } from '../types'
 
 type Tab = 'plan' | 'archive'
@@ -37,10 +37,14 @@ function Meetings() {
 
   // Варианты фильтров считаем по всей вкладке, а не по отфильтрованному списку:
   // иначе выбор одного фильтра прятал бы кнопки остальных.
+  // У эфира книг бывает несколько (программа блоками) — встреча попадает
+  // в фильтр каждой своей книги.
   const books: Array<{ id: string; label: string }> = []
   for (const e of tabEvents) {
-    if (e.book_id && !books.some((b) => b.id === e.book_id)) {
-      books.push({ id: e.book_id, label: bookTitleById(e.book_id) ?? e.book_id })
+    for (const id of eventBookIds(e)) {
+      if (!books.some((b) => b.id === id)) {
+        books.push({ id, label: bookTitleById(id) ?? id })
+      }
     }
   }
   // Книги, которые читаем сейчас, — в начало: они должны остаться в строке,
@@ -59,7 +63,7 @@ function Meetings() {
   const visible = tabEvents
     .filter(
       (e) =>
-        (book === 'all' || e.book_id === book) &&
+        (book === 'all' || eventBookIds(e).includes(book)) &&
         (year === 'all' || e.date.startsWith(year)),
     )
     .sort((a, b) =>

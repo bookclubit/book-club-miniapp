@@ -1,5 +1,5 @@
 import { bookTitleById, mediaUrl } from '../lib/api'
-import { isArchived } from '../lib/events'
+import { eventBookIds, isArchived } from '../lib/events'
 import { formatEventDate, formatWeekday } from '../lib/format'
 import ClubAvatar from './ClubAvatar'
 import Icon from './Icon'
@@ -10,6 +10,8 @@ import type { ClubEvent } from '../types'
 export interface TopicSlot {
   id: string
   title: string
+  /** Подпись группы («Docker · глава 10») — если глав на эфире несколько. */
+  group?: string
   speaker?: { name: string; avatar?: string; pending?: boolean }
   slidesUrl?: string
 }
@@ -28,7 +30,11 @@ function EventCard({ event, topicSlots, topicSlotsNote }: EventCardProps) {
   const done = isArchived(event)
   const kind = EVENT_TYPE_LABEL[event.type]
   const streamName = event.stream ? `Книжный клуб ${event.stream}` : null
-  const bookTitle = bookTitleById(event.book_id)
+  // Книг у эфира может быть несколько (программа блоками) — перечисляем все.
+  const bookTitle = eventBookIds(event)
+    .map((id) => bookTitleById(id))
+    .filter(Boolean)
+    .join(' · ')
   const moderators = event.type === 'closed-chapter' ? (event.moderators ?? []) : []
 
   return (
@@ -101,8 +107,14 @@ function EventCard({ event, topicSlots, topicSlotsNote }: EventCardProps) {
       {/* Доклады: слоты тем главы. Занятость — из заявок D1 (единый источник). */}
       {event.type === 'live-talk' && topicSlots && topicSlots.length > 0 ? (
         <ul className="mt-4 space-y-2.5">
-          {topicSlots.map((slot) => (
-            <li key={slot.id} className="flex items-center gap-3">
+          {topicSlots.map((slot, i) => (
+            <li key={slot.id}>
+              {/* Подзаголовок главы — только когда глава сменилась: на эфире
+                  из нескольких глав иначе не видно, где чья тема. */}
+              {slot.group && slot.group !== topicSlots[i - 1]?.group ? (
+                <p className={`eyebrow ${i > 0 ? 'mt-4' : ''} mb-2`}>{slot.group}</p>
+              ) : null}
+              <div className="flex items-center gap-3">
               {slot.speaker ? (
                 slot.speaker.avatar ? (
                   <img
@@ -145,6 +157,7 @@ function EventCard({ event, topicSlots, topicSlotsNote }: EventCardProps) {
                   Слайды
                 </a>
               ) : null}
+              </div>
             </li>
           ))}
         </ul>

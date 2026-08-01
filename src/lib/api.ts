@@ -1,4 +1,4 @@
-import { isArchived } from './events'
+import { eventProgram, isArchived } from './events'
 import type {
   BookMeta,
   Chapter,
@@ -153,28 +153,29 @@ export interface PlanSlot {
 export async function fetchPlanSlots(): Promise<PlanSlot[]> {
   const [events, claims] = await Promise.all([fetchEvents(), fetchClaims()])
   const taken = new Set(claims.map((c) => c.topic_id).filter(Boolean))
-  const upcoming = events.filter(
-    (e) => e.type === 'live-talk' && !isArchived(e) && e.book_id && e.chapter,
-  )
+  const upcoming = events.filter((e) => e.type === 'live-talk' && !isArchived(e))
 
   const slots: PlanSlot[] = []
   for (const event of upcoming) {
-    const topics = await fetchEventChapterTopics(event.book_id!, event.chapter!)
-    // Главу могли поделить между эфирами: тогда у встречи свой набор тем.
-    const ids = event.type === 'live-talk' ? event.topic_ids : undefined
-    const own = ids && ids.length > 0 ? topics.filter((t) => ids.includes(t.id)) : topics
-    for (const topic of own) {
-      if (taken.has(topic.id)) continue
-      slots.push({
-        topicId: topic.id,
-        title: topic.title,
-        eventId: event.id,
-        eventTitle: event.title,
-        date: event.date,
-        time: event.time,
-        ...(event.stream ? { stream: event.stream } : {}),
-        ...(bookTitleById(event.book_id) ? { bookTitle: bookTitleById(event.book_id) } : {}),
-      })
+    // Программа блоками: на эфире бывает несколько глав и даже книг.
+    for (const block of eventProgram(event)) {
+      const topics = await fetchEventChapterTopics(block.book_id, block.chapter)
+      // Главу могли поделить между эфирами: тогда у блока свой набор тем.
+      const ids = block.topic_ids
+      const own = ids && ids.length > 0 ? topics.filter((t) => ids.includes(t.id)) : topics
+      for (const topic of own) {
+        if (taken.has(topic.id)) continue
+        slots.push({
+          topicId: topic.id,
+          title: topic.title,
+          eventId: event.id,
+          eventTitle: event.title,
+          date: event.date,
+          time: event.time,
+          ...(event.stream ? { stream: event.stream } : {}),
+          ...(bookTitleById(block.book_id) ? { bookTitle: bookTitleById(block.book_id) } : {}),
+        })
+      }
     }
   }
   return slots.sort((a, b) => a.date.localeCompare(b.date))

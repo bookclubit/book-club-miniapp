@@ -133,6 +133,16 @@ export interface LiveTalk {
 /** Монтажные ролики докладов встречи: id темы → ссылки на чистовую запись. */
 export type EventRecordings = Record<string, { youtube?: string; vk?: string }>
 
+/**
+ * Блок программы эфира: глава книги и темы из неё (пусто — вся глава).
+ * Блоков может быть несколько: за вечер разбирают несколько глав и даже книг.
+ */
+export interface ProgramBlock {
+  book_id: string
+  chapter: string
+  topic_ids?: string[]
+}
+
 export interface LiveTalkEvent {
   id: string
   type: 'live-talk'
@@ -144,7 +154,9 @@ export interface LiveTalkEvent {
   talks: LiveTalk[]
   call_url?: string
   materials?: EventMaterial[]
-  /** Книга и глава программы эфира — из них бот предлагает темы спикерам. */
+  /** Программа эфира блоками — из неё бот предлагает темы спикерам. */
+  program?: ProgramBlock[]
+  /** Старая запись программы (одна глава) — разбирается тем же `eventProgram`. */
   book_id?: string
   chapter?: string
   /**

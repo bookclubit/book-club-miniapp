@@ -1,5 +1,5 @@
 import { bookFolderById, type ChapterTopics, type TopicClaim } from './api'
-import { isArchived } from './events'
+import { eventProgram, isArchived } from './events'
 import type { ClubEvent, IndexSpeaker, LiveTalkEvent, Topic } from '../types'
 
 // Доклад спикера с контекстом встречи — для профиля спикера.
@@ -41,15 +41,17 @@ function findEventForClaim(
   live: LiveTalkEvent[],
   c: TopicClaim,
 ): LiveTalkEvent | undefined {
+  const blocksOf = (ev: LiveTalkEvent) => eventProgram(ev)
   if (c.topic_id) {
-    const byTopic = live.find(
-      (ev) => ev.book_id === c.book_id && ev.topic_ids?.includes(c.topic_id!),
+    const byTopic = live.find((ev) =>
+      blocksOf(ev).some((b) => b.book_id === c.book_id && b.topic_ids?.includes(c.topic_id!)),
     )
     if (byTopic) return byTopic
   }
   return (
-    live.find((ev) => ev.book_id === c.book_id && ev.chapter === c.chapter) ??
-    live.find((ev) => ev.book_id === c.book_id)
+    live.find((ev) =>
+      blocksOf(ev).some((b) => b.book_id === c.book_id && b.chapter === c.chapter),
+    ) ?? live.find((ev) => blocksOf(ev).some((b) => b.book_id === c.book_id))
   )
 }
 
@@ -60,10 +62,11 @@ function findEventForTopic(
   chapter: ChapterTopics,
   topic: Topic,
 ): LiveTalkEvent | undefined {
-  const ofBook = live.filter((ev) => bookFolderById(ev.book_id) === chapter.bookFolder)
+  const blocksOfBook = (ev: LiveTalkEvent) =>
+    eventProgram(ev).filter((b) => bookFolderById(b.book_id) === chapter.bookFolder)
   return (
-    ofBook.find((ev) => ev.topic_ids?.includes(topic.id)) ??
-    ofBook.find((ev) => ev.chapter === chapter.chapterSlug)
+    live.find((ev) => blocksOfBook(ev).some((b) => b.topic_ids?.includes(topic.id))) ??
+    live.find((ev) => blocksOfBook(ev).some((b) => b.chapter === chapter.chapterSlug))
   )
 }
 
