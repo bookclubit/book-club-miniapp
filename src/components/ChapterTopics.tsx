@@ -104,13 +104,16 @@ function ChapterTopics({
       className="reveal scroll-mt-24"
       style={{ '--reveal-delay': `${delay}ms` } as React.CSSProperties}
     >
-      {/* На узком экране название главы занимает всю ширину, а материалы
-          (число тем, доска, записи) уходят второй строкой: рядом с длинным
-          названием они его сдавливали. */}
+      {/* На узком экране второй строкой уходят только ссылки (доска, записи):
+          рядом с длинным названием они его сдавливали. Число тем остаётся
+          в строке заголовка — это его подпись, а не материал. */}
       <header className="flex flex-col gap-1 border-b border-line pb-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
         {/* Заголовок — кнопка: по нему главу сворачивают и раскрывают.
             Ссылки на материалы держим снаружи кнопки (вложенные интерактивные
             элементы ломают клавиатуру и скринридер). */}
+        {/* Строка заголовка: на мобильном число тем прижато к правому краю
+            рядом с названием, на sm оно уезжает к остальным материалам. */}
+        <div className="flex items-end justify-between gap-3 sm:block">
         <button
           type="button"
           onClick={onToggle}
@@ -133,12 +136,18 @@ function ChapterTopics({
             {chapter.title}
           </span>
         </button>
+          {count > 0 ? (
+            <span className="shrink-0 text-xs text-ink-faint sm:hidden">
+              {count} {plural(count, 'тема', 'темы', 'тем')}
+            </span>
+          ) : null}
+        </div>
 
         {/* Материалы всей главы: доска обсуждения и записи трансляций.
             Доска — у главы, а не у темы: на обсуждении её рисуют на всю главу. */}
         <div className="-ml-1 flex shrink-0 items-center gap-2 sm:ml-0 sm:pb-0.5">
           {count > 0 ? (
-            <span className="text-xs text-ink-faint">
+            <span className="hidden text-xs text-ink-faint sm:inline">
               {count} {plural(count, 'тема', 'темы', 'тем')}
             </span>
           ) : null}
