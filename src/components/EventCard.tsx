@@ -1,6 +1,6 @@
 import { bookTitleById, mediaUrl } from '../lib/api'
 import { eventBookIds, isArchived } from '../lib/events'
-import { formatEventDate, formatWeekday } from '../lib/format'
+import { formatEventDate, formatWeekdayShort } from '../lib/format'
 import ClubAvatar from './ClubAvatar'
 import Icon from './Icon'
 import { MaterialGlyph } from './MaterialLinks'
@@ -61,13 +61,15 @@ function EventCard({ event, topicSlots, topicSlotsNote, dateOutside }: EventCard
             {event.time}
           </p>
         ) : (
+          // Дата и время — одной строкой; на узкой карточке перенос случится
+          // сам по пробелу, поэтому день недели короткий («сб»).
           <p className="shrink-0 text-right leading-tight">
-            <span className="font-display block text-base font-semibold text-ink">
+            <span className="font-display text-base font-semibold text-ink">
               {formatEventDate(event.date)}
               {done ? ` ${new Date(`${event.date}T00:00:00`).getFullYear()}` : ''}
-            </span>
-            <span className="mt-0.5 block text-xs text-ink-faint">
-              {done ? event.time : `${formatWeekday(event.date)} · ${event.time}`}
+            </span>{' '}
+            <span className="text-xs text-ink-faint">
+              {done ? `· ${event.time}` : `· ${formatWeekdayShort(event.date)} · ${event.time}`}
             </span>
           </p>
         )}

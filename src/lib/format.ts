@@ -25,6 +25,11 @@ export function formatDateWithYear(date: string): string {
     .replace(' г.', '')
 }
 
+// Короткий день недели: «вс». Нужен там, где дата и время стоят одной строкой.
+export function formatWeekdayShort(date: string): string {
+  return new Date(`${date}T00:00:00`).toLocaleDateString('ru-RU', { weekday: 'short' })
+}
+
 // День недели: «воскресенье».
 export function formatWeekday(date: string): string {
   return new Date(`${date}T00:00:00`).toLocaleDateString('ru-RU', { weekday: 'long' })
