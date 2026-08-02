@@ -104,7 +104,10 @@ function ChapterTopics({
       className="reveal scroll-mt-24"
       style={{ '--reveal-delay': `${delay}ms` } as React.CSSProperties}
     >
-      <header className="flex items-end justify-between gap-4 border-b border-line pb-3">
+      {/* На узком экране название главы занимает всю ширину, а материалы
+          (число тем, доска, записи) уходят второй строкой: рядом с длинным
+          названием они его сдавливали. */}
+      <header className="flex flex-col gap-1 border-b border-line pb-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
         {/* Заголовок — кнопка: по нему главу сворачивают и раскрывают.
             Ссылки на материалы держим снаружи кнопки (вложенные интерактивные
             элементы ломают клавиатуру и скринридер). */}
@@ -133,7 +136,7 @@ function ChapterTopics({
 
         {/* Материалы всей главы: доска обсуждения и записи трансляций.
             Доска — у главы, а не у темы: на обсуждении её рисуют на всю главу. */}
-        <div className="flex shrink-0 items-center gap-2 pb-0.5">
+        <div className="-ml-1 flex shrink-0 items-center gap-2 sm:ml-0 sm:pb-0.5">
           {count > 0 ? (
             <span className="text-xs text-ink-faint">
               {count} {plural(count, 'тема', 'темы', 'тем')}

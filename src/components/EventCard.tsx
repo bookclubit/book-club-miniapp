@@ -3,6 +3,7 @@ import { eventBookIds, isArchived } from '../lib/events'
 import { formatEventDate, formatWeekday } from '../lib/format'
 import ClubAvatar from './ClubAvatar'
 import Icon from './Icon'
+import { MaterialGlyph } from './MaterialLinks'
 import { EVENT_TYPE_LABEL } from '../types'
 import type { ClubEvent } from '../types'
 
@@ -18,6 +19,11 @@ export interface TopicSlot {
 
 interface EventCardProps {
   event: ClubEvent
+  /**
+   * Дата уже показана снаружи (таймлайн на «Встречах»): тогда в углу карточки
+   * остаётся только время — повторять дату дважды на одном экране незачем.
+   */
+  dateOutside?: boolean
   // Для таймлайна плана: слоты тем главы (занятые/свободные) вместо списка докладов.
   topicSlots?: TopicSlot[]
   // Мелкая подпись под слотами (например, «занятость временно недоступна»).
@@ -26,7 +32,7 @@ interface EventCardProps {
 
 // Карточка встречи: открытое обсуждение главы или доклады (запись докладов).
 // У будущих — «Пойду» и ссылки; у прошедших/завершённых — записи трансляций.
-function EventCard({ event, topicSlots, topicSlotsNote }: EventCardProps) {
+function EventCard({ event, topicSlots, topicSlotsNote, dateOutside }: EventCardProps) {
   const done = isArchived(event)
   const kind = EVENT_TYPE_LABEL[event.type]
   const streamName = event.stream ? `Книжный клуб ${event.stream}` : null
@@ -39,16 +45,32 @@ function EventCard({ event, topicSlots, topicSlotsNote }: EventCardProps) {
 
   return (
     <article className={`card ${done ? 'opacity-60' : ''}`}>
+      {/* Верхняя строка: слева — что за встреча, справа — когда. Дата в углу
+          карточки, а не в тексте: по ней встречу и находят глазами. */}
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-ink-faint">
-          <Icon name="calendar" size={15} />
+        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-widest text-ink-faint">
           <span>{kind}</span>
+          {done ? (
+            <span className="rounded-full bg-canvas px-2.5 py-0.5 text-[11px] font-medium normal-case tracking-normal text-ink-faint">
+              прошла
+            </span>
+          ) : null}
         </div>
-        {done ? (
-          <span className="rounded-full bg-canvas px-2.5 py-0.5 text-xs font-medium text-ink-faint">
-            прошла
-          </span>
-        ) : null}
+        {dateOutside ? (
+          <p className="font-display shrink-0 text-base font-semibold leading-none text-ink">
+            {event.time}
+          </p>
+        ) : (
+          <p className="shrink-0 text-right leading-tight">
+            <span className="font-display block text-base font-semibold text-ink">
+              {formatEventDate(event.date)}
+              {done ? ` ${new Date(`${event.date}T00:00:00`).getFullYear()}` : ''}
+            </span>
+            <span className="mt-0.5 block text-xs text-ink-faint">
+              {done ? event.time : `${formatWeekday(event.date)} · ${event.time}`}
+            </span>
+          </p>
+        )}
       </div>
 
       <h3 className="font-display mt-3 text-lg font-semibold leading-snug text-ink">
@@ -66,16 +88,11 @@ function EventCard({ event, topicSlots, topicSlotsNote }: EventCardProps) {
         </p>
       ) : null}
 
-      <p className="mt-1.5 text-sm text-ink-soft">
-        {/* Прошедшие: дата с годом (без дня недели). Будущие: с днём недели. */}
-        {done
-          ? `${formatEventDate(event.date)} ${new Date(`${event.date}T00:00:00`).getFullYear()}`
-          : `${formatEventDate(event.date)}, ${formatWeekday(event.date)}`}
-        {` · ${event.time}`}
-        {event.type === 'closed-chapter' && event.pages
-          ? ` · стр. ${event.pages.from}–${event.pages.to}`
-          : ''}
-      </p>
+      {event.type === 'closed-chapter' && event.pages ? (
+        <p className="mt-1.5 text-sm text-ink-soft">
+          стр. {event.pages.from}–{event.pages.to}
+        </p>
+      ) : null}
 
       {moderators.length > 0 ? (
         <div className="mt-4">
@@ -175,7 +192,7 @@ function EventCard({ event, topicSlots, topicSlotsNote }: EventCardProps) {
             rel="noreferrer"
             className="btn-ghost px-4 py-2 text-xs"
           >
-            <Icon name="external" size={14} />
+            <Icon name="video" size={15} />
             Подключиться
           </a>
         ) : null}
@@ -186,7 +203,7 @@ function EventCard({ event, topicSlots, topicSlotsNote }: EventCardProps) {
             rel="noreferrer"
             className="btn-ghost px-4 py-2 text-xs"
           >
-            <Icon name="play" size={14} />
+            <MaterialGlyph kind="youtube" />
             {done ? 'Запись YouTube' : 'YouTube'}
           </a>
         ) : null}
@@ -197,7 +214,7 @@ function EventCard({ event, topicSlots, topicSlotsNote }: EventCardProps) {
             rel="noreferrer"
             className="btn-ghost px-4 py-2 text-xs"
           >
-            <Icon name="play" size={14} />
+            <MaterialGlyph kind="vk" />
             {done ? 'Запись VK' : 'VK Видео'}
           </a>
         ) : null}

@@ -170,15 +170,17 @@ function Book() {
         <>
           {meta ? (
             <header className="reveal mt-8 flex flex-col gap-8 sm:flex-row sm:gap-10">
-              {/* Обложка и под ней — кнопка колоды (по ширине обложки). */}
-              <div className="w-44 shrink-0 self-start">
+              {/* Обложка и под ней — кнопка колоды. На узком экране колонка
+                  во всю ширину: обложка по центру и крупнее, кнопка — во всю
+                  ширину экрана (у края она попадает под большой палец). */}
+              <div className="w-full shrink-0 self-start sm:w-44">
                 {meta.cover ? (
                   <img
                     src={mediaUrl(meta.cover)}
                     alt={`Обложка книги «${meta.title}»`}
                     width={176}
                     height={250}
-                    className="h-62.5 w-44 rounded-lg object-cover shadow-lift"
+                    className="mx-auto h-75 w-52 rounded-lg object-cover shadow-lift sm:mx-0 sm:h-62.5 sm:w-44"
                   />
                 ) : null}
                 {cardCount > 0 ? <AddBookToDeck bookId={bookId} count={cardCount} /> : null}

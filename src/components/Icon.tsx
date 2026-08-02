@@ -22,6 +22,7 @@ export type IconName =
   | 'mic'
   | 'board'
   | 'chevron'
+  | 'video'
 
 const PATHS: Record<IconName, React.ReactNode> = {
   'arrow-left': <path d="M15.5 19 8 12l7.5-7" />,
@@ -103,6 +104,13 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <>
       <rect x="9" y="2.5" width="6" height="11" rx="3" />
       <path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" />
+    </>
+  ),
+  // Видеозвонок (Google Meet): «камера» — прямоугольник с объективом-стрелкой.
+  video: (
+    <>
+      <rect x="2.5" y="6" width="12.5" height="12" rx="2.5" />
+      <path d="M15 11.5 21.5 8v8L15 12.5z" />
     </>
   ),
   // Раскрыть/свернуть главу: короткая «птичка», повёрнутая через rotate.

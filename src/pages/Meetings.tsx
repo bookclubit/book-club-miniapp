@@ -208,23 +208,35 @@ function TimelineItem({
   const year = date.getFullYear()
 
   return (
-    <div
-      className="reveal flex gap-4"
-      style={{ '--reveal-delay': `${delay}ms` } as React.CSSProperties}
-    >
-      <div className="w-12 shrink-0 pt-4 text-right sm:w-14">
-        <div className="font-display text-2xl font-semibold leading-none text-ink">{day}</div>
-        <div className="mt-1 text-xs uppercase tracking-wide text-ink-faint">{month}</div>
-        <div className="text-xs text-ink-faint">{showSlots ? weekday : year}</div>
-      </div>
-      <div className="relative min-w-0 grow border-l border-line pl-5">
-        <span className="absolute -left-1.25 top-5 h-2.5 w-2.5 rounded-full border-2 border-accent bg-canvas" />
-        <EventProgramCard
-          event={event}
-          claims={claims}
-          claimsUnavailable={claimsUnavailable}
-          showSlots={showSlots}
-        />
+    <div className="reveal" style={{ '--reveal-delay': `${delay}ms` } as React.CSSProperties}>
+      {/* На узком экране колонка с датой съедала треть ширины и карточка
+          сплющивалась, поэтому там дата — строкой над карточкой, а сама
+          карточка занимает всю ширину. Таймлайн с засечками — от sm. */}
+      <p className="mb-2 flex items-baseline gap-2 sm:hidden">
+        <span className="font-display text-lg font-semibold leading-none text-ink">
+          {day} {month}
+        </span>
+        <span className="text-xs uppercase tracking-wide text-ink-faint">
+          {showSlots ? weekday : year}
+        </span>
+      </p>
+
+      <div className="flex gap-4">
+        <div className="hidden w-12 shrink-0 pt-4 text-right sm:block sm:w-14">
+          <div className="font-display text-2xl font-semibold leading-none text-ink">{day}</div>
+          <div className="mt-1 text-xs uppercase tracking-wide text-ink-faint">{month}</div>
+          <div className="text-xs text-ink-faint">{showSlots ? weekday : year}</div>
+        </div>
+        <div className="relative min-w-0 grow sm:border-l sm:border-line sm:pl-5">
+          <span className="absolute -left-1.25 top-5 hidden h-2.5 w-2.5 rounded-full border-2 border-accent bg-canvas sm:block" />
+          <EventProgramCard
+            event={event}
+            claims={claims}
+            claimsUnavailable={claimsUnavailable}
+            showSlots={showSlots}
+            dateOutside
+          />
+        </div>
       </div>
     </div>
   )

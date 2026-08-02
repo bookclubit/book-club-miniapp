@@ -22,12 +22,15 @@ export function EventProgramCard({
   claims,
   showSlots,
   claimsUnavailable,
+  dateOutside,
 }: {
   event: ClubEvent
   claims: TopicClaim[]
   // Заявки из бота не загрузились: темы показываем свободными + мелкая подпись.
   claimsUnavailable?: boolean
   showSlots: boolean
+  /** Дата показана снаружи карточки (таймлайн «Встреч»). */
+  dateOutside?: boolean
 }) {
   // Для «докладов» темы программы — слоты (и в плане, и в архиве). Единый
   // источник занятости — заявки D1 (event.talks больше не используется).
@@ -102,6 +105,7 @@ export function EventProgramCard({
   return (
     <EventCard
       event={event}
+      dateOutside={dateOutside}
       topicSlots={visibleSlots}
       topicSlotsNote={
         isLiveTalk && claimsUnavailable
