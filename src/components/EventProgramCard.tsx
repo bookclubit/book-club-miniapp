@@ -38,13 +38,12 @@ export function EventProgramCard({
   const blocks = eventProgram(event)
   const isLiveTalk = event.type === 'live-talk' && blocks.length > 0
 
-  // Ключ описывает программу целиком, вместе с набором тем блока: одну главу
-  // делят на два вечера, и без topic_ids у таких встреч ключ совпадал —
-  // SWR отдавал обеим карточкам темы того эфира, который загрузился первым
-  // (встречи 101 и 102 показывали одинаковые темы).
-  const programKey = blocks
-    .map((b) => `${b.book_id}/${b.chapter}/${(b.topic_ids ?? []).join('+')}`)
-    .join(',')
+  // Ключ — вся программа целиком, как её видит загрузчик ниже. Раньше в ключ
+  // шли только книга и глава: у двух встреч по одной главе (101 и 102) ключи
+  // совпадали, и SWR отдавал обеим темы того эфира, который загрузился первым.
+  // Сериализация блоков защищает от повтора: новое поле, влияющее на набор тем,
+  // попадёт в ключ само.
+  const programKey = JSON.stringify(blocks)
 
   const { data: program } = useSWR<{ block: (typeof blocks)[number]; topics: Topic[] }[]>(
     isLiveTalk ? `plan-topics:${programKey}` : null,
