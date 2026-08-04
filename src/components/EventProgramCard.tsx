@@ -1,7 +1,7 @@
 import useSWR from 'swr'
 import { bookTitleById, fetchEventChapterTopics, fetchPublishedSlides, speakerAvatar } from '../lib/api'
 import type { TopicClaim } from '../lib/api'
-import { eventProgram } from '../lib/events'
+import { eventProgram, isArchived } from '../lib/events'
 import type { ClubEvent, Topic } from '../types'
 import EventCard from './EventCard'
 import type { TopicSlot } from './EventCard'
@@ -37,6 +37,7 @@ export function EventProgramCard({
   // Программа блоками: за вечер разбирают несколько глав и даже книг.
   const blocks = eventProgram(event)
   const isLiveTalk = event.type === 'live-talk' && blocks.length > 0
+  const archived = isArchived(event)
 
   // Ключ — вся программа целиком, как её видит загрузчик ниже. Раньше в ключ
   // шли только книга и глава: у двух встреч по одной главе (101 и 102) ключи
@@ -70,17 +71,22 @@ export function EventProgramCard({
     topics.map((topic) => {
       const claim = claims.find((c) => c.topic_id === topic.id)
       const bookTitle = manyBooks ? bookTitleById(block.book_id) : undefined
+      // Заявок в D1 у старых встреч нет — там докладчик записан прямо в теме
+      // главы (`topic.speakers`). Берём его как замену, иначе прошедший вечер
+      // выглядел бы пустым, хотя на странице книги и в профиле спикер есть.
+      const fromChapter = archived ? topic.speakers?.[0] : undefined
+      const speakerName = claim?.speaker ?? fromChapter
       return {
         id: topic.id,
         title: topic.title,
         group: manyChapters
           ? [bookTitle, `глава ${chapterOrderOf(block.chapter)}`].filter(Boolean).join(' · ')
           : undefined,
-        speaker: claim
+        speaker: speakerName
           ? {
-              name: claim.speaker,
-              avatar: speakerAvatar(claim.speaker),
-              pending: claim.status !== 'confirmed',
+              name: speakerName,
+              avatar: speakerAvatar(speakerName),
+              pending: claim ? claim.status !== 'confirmed' : false,
             }
           : undefined,
         slidesUrl: claim?.slides_url ?? undefined,
