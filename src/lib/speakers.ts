@@ -1,6 +1,6 @@
 import { bookFolderById, type ChapterTopics, type TopicClaim } from './api'
 import { eventProgram, isArchived } from './events'
-import { findTopicEvent } from './materials'
+import { findTopicEvent, topicMaterials } from './materials'
 import type { ClubEvent, IndexSpeaker, LiveTalkEvent, Topic } from '../types'
 
 // Доклад спикера с контекстом встречи — для профиля спикера.
@@ -121,12 +121,17 @@ export function collectSpeakerTalks(
     for (const topic of chapter.topics) {
       if (!topicMatchesSpeaker(topic, speaker)) continue
 
-      const materials = {
-        slidesUrl: topic.presentation?.trim() || undefined,
-        youtube: topic.video_youtube?.trim() || undefined,
-        vk: topic.video_vk?.trim() || undefined,
-      }
       const event = findEventForTopic(live, chapter, topic)
+      // Ссылки собираем тем же `topicMaterials`, что и страница книги: они
+      // вписаны либо прямо в тему, либо в `recordings` встречи (так заполнены
+      // почти все старые главы). Профиль читал только тему — и у доклада не
+      // показывалось видео, хотя на странице книги оно было.
+      const { youtube, vk, slidesUrl } = topicMaterials(topic, {
+        events: live,
+        bookFolder: chapter.bookFolder,
+        chapterSlug: chapter.chapterSlug,
+      })
+      const materials = { slidesUrl, youtube, vk }
       const happened =
         Boolean(materials.youtube || materials.vk || materials.slidesUrl) ||
         Boolean(event && isArchived(event))
