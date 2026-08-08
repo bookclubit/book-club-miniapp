@@ -14,6 +14,11 @@ export interface TopicSlot {
   /** Подпись группы («Docker · глава 10») — если глав на эфире несколько. */
   group?: string
   speaker?: { name: string; avatar?: string; pending?: boolean }
+  /**
+   * Доклад состоялся, но кто его вёл — неизвестно (у старых эфиров имён
+   * не сохранилось). Не то же самое, что свободная тема в плане.
+   */
+  speakerUnknown?: boolean
   slidesUrl?: string
 }
 
@@ -160,7 +165,9 @@ function EventCard({ event, topicSlots, topicSlotsNote, dateOutside }: EventCard
                 <p className="text-xs text-ink-faint">
                   {slot.speaker
                     ? `${slot.speaker.name}${slot.speaker.pending ? ' · заявка' : ''}`
-                    : 'свободная тема'}
+                    : slot.speakerUnknown
+                      ? 'спикер не указан'
+                      : 'свободная тема'}
                 </p>
               </div>
               {/* slidesUrl приходит уже отфильтрованным: только принятые

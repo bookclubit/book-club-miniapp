@@ -89,6 +89,7 @@ export function EventProgramCard({
               pending: claim ? claim.status !== 'confirmed' : false,
             }
           : undefined,
+        speakerUnknown: archived && !speakerName,
         slidesUrl: claim?.slides_url ?? undefined,
       }
     }),
@@ -109,9 +110,17 @@ export function EventProgramCard({
       : s,
   )
 
-  // В плане показываем все темы (свободные тоже), в архиве — только занятые.
+  // В плане показываем все темы (свободные тоже). В архиве — только те, по
+  // которым доклад состоялся: у темы либо назван спикер, либо есть монтажный
+  // ролик. Одного спикера мало: у старых эфиров имён не сохранилось (в анонсах
+  // их не писали), и программа таких встреч выглядела пустой, хотя записи
+  // докладов есть и на странице книги они показываются.
   const visibleSlots =
-    gatedSlots && !showSlots ? gatedSlots.filter((s) => s.speaker) : gatedSlots
+    gatedSlots && !showSlots
+      ? gatedSlots.filter(
+          (s) => s.speaker || (event.type === 'live-talk' && event.recordings?.[s.id]),
+        )
+      : gatedSlots
 
   return (
     <EventCard
