@@ -21,6 +21,7 @@ import {
 } from '../lib/api'
 import type { BookWithFolder, TopicClaim } from '../lib/api'
 import { authorKey } from '../lib/authors'
+import { mergeTalkTopics } from '../lib/topics'
 import {
   chapterBroadcasts,
   topicMaterials,
@@ -125,7 +126,10 @@ function Book() {
   const materials = useMemo(() => {
     const found: Record<string, TopicMaterials> = {}
     for (const chapter of chapters.data ?? []) {
-      for (const topic of chapter.topics) {
+      // Материалы считаем по докладам, а не по темам: объединённые темы —
+      // это один доклад с общими заявкой, слайдами и записью, и заявка в D1
+      // заведена на id первой темы группы (`mergeTalkTopics`).
+      for (const topic of mergeTalkTopics(chapter.topics)) {
         found[topic.id] = topicMaterials(topic, {
           events: events.data,
           claims: claims.data,

@@ -1,4 +1,5 @@
 import { eventProgram, isArchived } from './events'
+import { mergeTalkTopics } from './topics'
 import type {
   BookMeta,
   Chapter,
@@ -182,7 +183,8 @@ export async function fetchPlanSlots(): Promise<PlanSlot[]> {
 }
 
 // Темы главы события для плана: book_id события может быть и id из meta,
-// и именем папки — резолвим через реестр.
+// и именем папки — резолвим через реестр. Темы, объединённые в один доклад,
+// склеиваем здесь: у эфира это один слот, одна бронь и одни слайды.
 export async function fetchEventChapterTopics(
   bookId: string,
   chapterSlug: string,
@@ -194,7 +196,7 @@ export async function fetchEventChapterTopics(
   if (!folder) return []
   try {
     const chapter = await fetcher<Chapter>(chapterUrl(folder, chapterSlug))
-    return chapter.topics
+    return mergeTalkTopics(chapter.topics)
   } catch {
     return []
   }
@@ -214,6 +216,9 @@ export interface ChapterTopics {
  * Разобранные главы всех книг клуба. Ключ SWR: 'chapters-all'.
  * Пустые заготовки (в реестре `topics: 0`) не запрашиваем, недоступную главу
  * пропускаем — профиль спикера не должен падать из-за одного файла.
+ *
+ * Темы одного доклада склеены (`mergeTalkTopics`): в профиле спикера это
+ * одна карточка с названиями через запятую, а не две с одними ссылками.
  */
 export async function fetchAllChapters(): Promise<ChapterTopics[]> {
   const index = await fetchIndex()
@@ -229,7 +234,7 @@ export async function fetchAllChapters(): Promise<ChapterTopics[]> {
           chapterSlug: chapter.slug,
           chapterTitle: data.title,
           chapterOrder: data.order,
-          topics: data.topics,
+          topics: mergeTalkTopics(data.topics),
         }
       } catch {
         return null

@@ -2,7 +2,8 @@ import { formatDateWithYear, plural } from '../lib/format'
 import type { ChapterBroadcast, TopicMaterials } from '../lib/materials'
 import Icon from './Icon'
 import MaterialLinks, { MaterialGlyph } from './MaterialLinks'
-import TopicRow from './TopicRow'
+import TopicRow, { TopicGroupRow } from './TopicRow'
+import { topicGroups } from '../lib/topics'
 import type { ChapterWithSlug } from '../types'
 
 const PLATFORMS = [
@@ -171,14 +172,25 @@ function ChapterTopics({
         <p className="pt-4 text-sm text-ink-faint">Темы появятся после разбора главы</p>
       ) : (
         <ul id={listId} className="divide-y divide-line">
-          {chapter.topics.map((topic, i) => (
-            <TopicRow
-              key={topic.id}
-              topic={topic}
-              index={i}
-              materials={materials?.[topic.id]}
-            />
-          ))}
+          {/* Темы, объединённые в один доклад, идут блоком: у них общие спикер
+              и материалы (`materials` собраны на группу — см. Book.tsx). */}
+          {topicGroups(chapter.topics).map((group, i) =>
+            group.topics.length === 1 ? (
+              <TopicRow
+                key={group.topics[0].id}
+                topic={group.topics[0]}
+                index={i}
+                materials={materials?.[group.topics[0].id]}
+              />
+            ) : (
+              <TopicGroupRow
+                key={group.key}
+                topics={group.topics}
+                index={i}
+                materials={materials?.[group.topics[0].id]}
+              />
+            ),
+          )}
         </ul>
       )}
     </section>
