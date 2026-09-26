@@ -367,10 +367,27 @@ export async function fetchFlashcards(bookId: string): Promise<Flashcard[]> {
 }
 
 // Загружает события клуба из events/ (список — в реестре). Ключ SWR: 'events'.
+// Файла из реестра может уже не быть: при переносе даты CMS переименовывает
+// файл встречи, а реестр пересобирается после мержа и ещё несколько минут
+// отдаётся из кэша raw.githubusercontent.com. Такую встречу (404) пропускаем —
+// иначе одна ссылка роняла бы и встречи, и главную, и страницы книг.
 export async function fetchEvents(): Promise<ClubEvent[]> {
   const index = await fetchIndex()
   const events = await Promise.all(
-    index.events.map((file) => fetcher<ClubEvent>(`${RAW_BASE}/events/${file}`)),
+    index.events.map(async (file) => {
+      const url = `${RAW_BASE}/events/${file}`
+      const res = await fetch(url)
+      if (res.status === 404) {
+        console.warn(`Встреча из реестра не найдена (404): ${url}`)
+        return null
+      }
+      if (!res.ok) {
+        throw new Error(`Не удалось загрузить данные (${res.status}): ${url}`)
+      }
+      return (await res.json()) as ClubEvent
+    }),
   )
-  return events.sort((a, b) => a.date.localeCompare(b.date))
+  return events
+    .filter((e): e is ClubEvent => e !== null)
+    .sort((a, b) => a.date.localeCompare(b.date))
 }
