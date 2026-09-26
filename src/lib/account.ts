@@ -1,8 +1,14 @@
 // Аккаунт платформы: вход через Telegram и клиент к API бота (единый прогресс,
-// настройки). Сессия — подписанный токен из /api/auth/telegram в localStorage.
+// колода, статистика). Сессия — подписанный токен бота в localStorage.
+//
+// Вход: внутри Telegram — автоматически по initData Mini App; в браузере —
+// через бота (кнопка ведёт в t.me/<бот>?start=login_<code>, человек жмёт
+// «Войти», сайт забирает сессию). Telegram Login Widget не используем: он
+// подтверждает вход сообщением от Telegram по номеру телефона, и в России
+// оно не доходит.
 
-import { BOT_API } from './api'
-import type { ReviewGrade, StudyProgress } from '../types'
+import { BOT_API, BOT_URL } from './api'
+import type { Deck, ReviewGrade, StudyProgress, UserStats } from '../types'
 
 export interface PlatformUser {
   id: number
@@ -22,9 +28,6 @@ export interface ServerCardProgress {
   lastReviewed: number
 }
 
-// Данные от Telegram Login Widget (браузер).
-export type TelegramWidgetUser = Record<string, string>
-
 // --- Telegram WebApp (Mini App внутри Telegram) ---
 
 interface TelegramWebApp {
@@ -36,7 +39,6 @@ interface TelegramWebApp {
 declare global {
   interface Window {
     Telegram?: { WebApp?: TelegramWebApp }
-    onTelegramAuth?: (user: TelegramWidgetUser) => void
   }
 }
 
@@ -102,20 +104,60 @@ async function authFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await res.json()) as T
 }
 
-/** Вход через Telegram (initData внутри Telegram или данные Login Widget). */
-export async function authTelegram(payload: {
-  initData?: string
-  widget?: TelegramWidgetUser
-}): Promise<PlatformUser> {
+/** Вход внутри Telegram: initData Mini App подписан токеном бота. */
+export async function authTelegram(initData: string): Promise<PlatformUser> {
   const res = await fetch(`${BOT_API}/api/auth/telegram`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ initData }),
   })
   if (!res.ok) throw new Error('Не удалось войти через Telegram')
   const data = (await res.json()) as { token: string; user: PlatformUser }
   setToken(data.token)
   return data.user
+}
+
+// --- Вход в браузере через бота ---
+
+// code уходит в диплинк бота, secret остаётся здесь: сессию бот отдаст только
+// тому, кто знает secret, — ссылку из чата чужим браузером не использовать.
+export interface BotLoginRequest {
+  code: string
+  secret: string
+}
+
+export type BotLoginCheck =
+  | { status: 'pending' }
+  | { status: 'expired' }
+  | { status: 'ok'; user: PlatformUser }
+
+export async function startBotLogin(): Promise<BotLoginRequest> {
+  const res = await fetch(`${BOT_API}/api/auth/bot`, { method: 'POST' })
+  if (!res.ok) throw new Error('Не удалось начать вход')
+  return (await res.json()) as BotLoginRequest
+}
+
+/** Ссылка, по которой человек подтверждает вход в боте. */
+export function botLoginUrl(code: string): string {
+  return `${BOT_URL}?start=login_${code}`
+}
+
+/** Подтвердил ли человек вход в боте. При успехе сессия сохраняется сразу. */
+export async function checkBotLogin(request: BotLoginRequest): Promise<BotLoginCheck> {
+  const res = await fetch(`${BOT_API}/api/auth/bot/check`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(request),
+  })
+  // 410 — заявка устарела или уже использована, 403 — не наш secret: начинаем заново.
+  if (res.status === 410 || res.status === 403) return { status: 'expired' }
+  if (!res.ok) throw new Error(`Ошибка входа (${res.status})`)
+  const data = (await res.json()) as { status: 'pending' | 'ok'; token?: string; user?: PlatformUser }
+  if (data.status === 'ok' && data.token && data.user) {
+    setToken(data.token)
+    return { status: 'ok', user: data.user }
+  }
+  return { status: 'pending' }
 }
 
 export async function fetchMe(): Promise<PlatformUser> {
@@ -206,14 +248,54 @@ export async function claimTopic(topicId: string): Promise<{ topic_title: string
   })
 }
 
-export async function fetchUserSettings(): Promise<{ daily_cards: number; options: number[] }> {
-  return authFetch('/api/settings')
+// --- Колода, импорт прогресса, статистика ---
+
+export async function fetchServerDeck(): Promise<Deck> {
+  const data = await authFetch<{ deck: Deck }>('/api/deck')
+  return data.deck
 }
 
-export async function saveUserSettings(daily: number): Promise<{ daily_cards: number }> {
-  return authFetch('/api/settings', {
+/** Книга в колоду или из неё; сервер отвечает колодой после изменения. */
+export async function changeServerDeck(action: 'add' | 'remove', book: string): Promise<Deck> {
+  const data = await authFetch<{ deck: Deck }>('/api/deck', {
     method: 'POST',
-    body: JSON.stringify({ daily_cards: daily }),
+    body: JSON.stringify({ action, book }),
   })
+  return data.deck
+}
+
+/** Колода с устройства — в аккаунт (только добавляет). */
+export async function mergeServerDeck(deck: Deck): Promise<Deck> {
+  const data = await authFetch<{ deck: Deck }>('/api/deck', {
+    method: 'POST',
+    body: JSON.stringify({ action: 'merge', ...deck }),
+  })
+  return data.deck
+}
+
+// Прогресс карточки с устройства в формате сервера.
+export interface ImportedProgress {
+  book_id: string
+  card_id: string
+  repetition: number
+  interval: number
+  easiness: number
+  due_date: number
+  last_reviewed: number
+}
+
+/** Прогресс с устройства — в аккаунт. Сервер не трогает карточки, которые уже знает. */
+export async function importProgress(items: ImportedProgress[]): Promise<number> {
+  const data = await authFetch<{ imported: number }>('/api/progress/import', {
+    method: 'POST',
+    body: JSON.stringify({ items }),
+  })
+  return data.imported
+}
+
+/** Статистика изучения — та же, что /status в боте. */
+export async function fetchStats(): Promise<UserStats> {
+  const data = await authFetch<{ stats: UserStats }>('/api/stats')
+  return data.stats
 }
 

@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { mutate } from 'swr'
 import {
   authTelegram,
   clearToken,
@@ -7,16 +8,20 @@ import {
   telegramInitData,
   telegramWebApp,
   type PlatformUser,
-  type TelegramWidgetUser,
 } from './account'
+import { syncGuestData } from './sync'
 
 interface AuthState {
   user: PlatformUser | null
   loading: boolean
   inTelegram: boolean
-  loginWithWidget: (data: TelegramWidgetUser) => Promise<void>
+  // Вход через бота завершён: сессию уже сохранил checkBotLogin.
+  completeLogin: (user: PlatformUser) => void
   logout: () => void
 }
+
+// Кэши SWR, которые после переноса гостевых данных в аккаунт пора перечитать.
+const ACCOUNT_KEYS = /^(deck|server-progress|stats|study-books)/
 
 const AuthContext = createContext<AuthState | null>(null)
 
@@ -45,7 +50,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // 2) Открыто внутри Telegram — вход автоматически по initData.
         const initData = telegramInitData()
         if (initData) {
-          const u = await authTelegram({ initData })
+          const u = await authTelegram(initData)
           if (!cancelled) setUser(u)
         }
       } catch {
@@ -59,10 +64,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const loginWithWidget = useCallback(async (data: TelegramWidgetUser) => {
-    const u = await authTelegram({ widget: data })
-    setUser(u)
-  }, [])
+  // Вошёл — переносим в аккаунт то, что человек успел на этом устройстве как гость.
+  const userId = user?.id
+  useEffect(() => {
+    if (userId === undefined) return
+    syncGuestData(userId)
+      .then((synced) => {
+        if (synced) void mutate((key) => typeof key === 'string' && ACCOUNT_KEYS.test(key))
+      })
+      .catch(() => {
+        // Сервер недоступен — перенесём при следующем запуске.
+      })
+  }, [userId])
+
+  const completeLogin = useCallback((u: PlatformUser) => setUser(u), [])
 
   const logout = useCallback(() => {
     clearToken()
@@ -71,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, inTelegram: Boolean(telegramInitData()), loginWithWidget, logout }}
+      value={{ user, loading, inTelegram: Boolean(telegramInitData()), completeLogin, logout }}
     >
       {children}
     </AuthContext.Provider>

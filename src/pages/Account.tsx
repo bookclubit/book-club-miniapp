@@ -1,58 +1,23 @@
-import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import useSWR from 'swr'
+import ActivityHeatmap from '../components/ActivityHeatmap'
+import BookMastery from '../components/BookMastery'
 import BrandIcon from '../components/BrandIcon'
+import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
-import Pill from '../components/Pill'
-import TelegramLoginButton from '../components/TelegramLoginButton'
-import { fetchBooks, fetchFlashcards } from '../lib/api'
-import {
-  fetchServerProgress,
-  fetchUserSettings,
-  saveUserSettings,
-  type ServerCardProgress,
-} from '../lib/account'
+import StatsSummary from '../components/StatsSummary'
+import TelegramBotLogin from '../components/TelegramBotLogin'
+import { BOT_URL, fetchBooks, type BookWithFolder } from '../lib/api'
+import { fetchStats } from '../lib/account'
+import { MASTERY_PARTS } from '../lib/mastery'
 import { useAuth } from '../lib/useAuth'
+import type { UserStats } from '../types'
 
-// Все ключи карточек клуба в формате «<book>:<cardId>» (как хранит прогресс).
-async function fetchAllCardKeys(): Promise<string[]> {
-  const books = await fetchBooks()
-  const per = await Promise.all(
-    books.map(async ({ folder }) => {
-      const cards = await fetchFlashcards(folder)
-      return cards.map((c) => `${folder}:${c.id}`)
-    }),
-  )
-  return per.flat()
-}
-
-interface Stats {
-  total: number
-  started: number
-  fresh: number
-  due: number
-  scheduled: number
-}
-
-function computeStats(keys: string[], progress: ServerCardProgress[]): Stats {
-  const now = Date.now()
-  const byId = new Map(progress.map((p) => [p.cardId, p]))
-  let started = 0
-  let overdue = 0
-  for (const key of keys) {
-    const p = byId.get(key)
-    if (!p) continue
-    started++
-    if (p.dueDate <= now) overdue++
-  }
-  const total = keys.length
-  const fresh = total - started
-  return { total, started, fresh, due: overdue + fresh, scheduled: started - overdue }
-}
-
+// Профиль: кто вошёл, статистика изучения и напоминания бота.
 function Account() {
-  const { user, loading, inTelegram, loginWithWidget, logout } = useAuth()
+  const { user, loading, inTelegram, completeLogin, logout } = useAuth()
 
   if (loading) {
     return (
@@ -62,7 +27,27 @@ function Account() {
     )
   }
 
-  if (!user) return <LoginView inTelegram={inTelegram} onWidget={loginWithWidget} />
+  if (!user) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-16 text-center sm:px-6">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent-soft text-accent-strong">
+          <BrandIcon brand="telegram" size={28} />
+        </span>
+        <h1 className="font-display mt-5 text-2xl font-semibold text-ink">Аккаунт клуба</h1>
+        <p className="mx-auto mt-2 max-w-sm text-ink-soft">
+          Войди через Telegram — колода, прогресс и статистика станут общими для сайта
+          и приложения в Telegram, а бот будет напоминать о повторении.
+        </p>
+        <div className="mt-6">
+          {inTelegram ? (
+            <p className="text-sm text-ink-faint">Входим автоматически…</p>
+          ) : (
+            <TelegramBotLogin onLogin={completeLogin} />
+          )}
+        </div>
+      </div>
+    )
+  }
 
   const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Участник клуба'
 
@@ -88,14 +73,10 @@ function Account() {
         </div>
       </header>
 
-      <StatsCard userId={user.id} />
-      <SettingsCard />
+      <StudyStats userId={user.id} />
+      <RemindersCard />
 
-      <button
-        type="button"
-        onClick={logout}
-        className="btn-ghost mt-8 text-sm"
-      >
+      <button type="button" onClick={logout} className="btn-ghost mt-8 text-sm">
         <Icon name="arrow-left" size={15} />
         Выйти
       </button>
@@ -103,141 +84,103 @@ function Account() {
   )
 }
 
-// --- Не вошёл: приглашение войти через Telegram ---
+// --- Статистика изучения (считает бот: те же цифры в его /status) ---
 
-function LoginView({
-  inTelegram,
-  onWidget,
-}: {
-  inTelegram: boolean
-  onWidget: (data: Record<string, string>) => Promise<void>
-}) {
-  const [error, setError] = useState<string | null>(null)
+function StudyStats({ userId }: { userId: number }) {
+  const { data, error, isLoading } = useSWR<UserStats>(`stats:${userId}`, fetchStats)
+  // Обложки — из меты книг, ключ общий с каталогом.
+  const books = useSWR<BookWithFolder[]>('books', fetchBooks)
+  const coverOf = (folder: string) => books.data?.find((b) => b.folder === folder)?.meta.cover
 
-  return (
-    <div className="mx-auto max-w-lg px-4 py-16 text-center sm:px-6">
-      <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent-soft text-accent-strong">
-        <BrandIcon brand="telegram" size={28} />
-      </span>
-      <h1 className="font-display mt-5 text-2xl font-semibold text-ink">Аккаунт клуба</h1>
-      <p className="mx-auto mt-2 max-w-sm text-ink-soft">
-        Войди через Telegram — и прогресс карточек станет единым с ботом: учишь здесь
-        или отвечаешь боту, статистика одна.
-      </p>
-
-      <div className="mt-6 flex justify-center">
-        {inTelegram ? (
-          <p className="text-sm text-ink-faint">Входим автоматически…</p>
-        ) : (
-          <TelegramLoginButton
-            onAuth={(data) => {
-              setError(null)
-              onWidget(data).catch(() => setError('Не удалось войти. Попробуй ещё раз.'))
-            }}
-          />
-        )}
-      </div>
-      {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}
-    </div>
-  )
-}
-
-// --- Статистика ---
-
-function StatsCard({ userId }: { userId: number }) {
-  const { data, error, isLoading } = useSWR(`account-stats:${userId}`, async () => {
-    const [keys, progress] = await Promise.all([fetchAllCardKeys(), fetchServerProgress()])
-    return computeStats(keys, progress)
-  })
-
-  return (
-    <section className="reveal mt-8" style={{ '--reveal-delay': '80ms' } as React.CSSProperties}>
-      <h2 className="font-display text-lg font-semibold text-ink">Статистика карточек</h2>
-      <div className="mt-3 card">
-        {isLoading ? (
-          <Loading label="Считаем прогресс…" />
-        ) : error ? (
-          <ErrorState message={(error as Error).message} />
-        ) : data ? (
-          <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            <Stat label="Всего" value={data.total} />
-            <Stat label="В работе" value={data.started} />
-            <Stat label="Новых" value={data.fresh} />
-            <Stat label="Ждут повторения" value={data.due} accent />
-            <Stat label="На потом" value={data.scheduled} />
-          </dl>
-        ) : null}
-      </div>
-    </section>
-  )
-}
-
-function Stat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
-  return (
-    <div>
-      <dd className={`font-display text-2xl font-semibold ${accent ? 'text-accent' : 'text-ink'}`}>
-        {value}
-      </dd>
-      <dt className="mt-0.5 text-xs text-ink-faint">{label}</dt>
-    </div>
-  )
-}
-
-// --- Настройки ---
-
-function SettingsCard() {
-  // Ключ 'user-settings': ключ 'settings' занят настройками клуба (SocialLinks).
-  const { data, error: loadError, isLoading, mutate } = useSWR('user-settings', fetchUserSettings)
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-
-  async function choose(n: number) {
-    if (!data || n === data.daily_cards || saving) return
-    setSaving(true)
-    setSaveError(null)
-    try {
-      // Оптимистичное обновление с откатом при ошибке — через кэш SWR.
-      await mutate(
-        async () => {
-          const res = await saveUserSettings(n)
-          return { ...data, daily_cards: res.daily_cards }
-        },
-        { optimisticData: { ...data, daily_cards: n }, rollbackOnError: true, revalidate: false },
-      )
-    } catch {
-      setSaveError('Не удалось сохранить')
-    } finally {
-      setSaving(false)
-    }
+  if (isLoading) {
+    return (
+      <section className="mt-8">
+        <Loading label="Считаем статистику…" />
+      </section>
+    )
+  }
+  if (error || !data) {
+    return (
+      <section className="mt-8">
+        <ErrorState message={error ? (error as Error).message : 'Статистика недоступна'} />
+      </section>
+    )
+  }
+  if (data.books.length === 0 && data.reviews.total === 0) {
+    return (
+      <section className="reveal mt-8" style={{ '--reveal-delay': '80ms' } as React.CSSProperties}>
+        <EmptyState
+          title="Статистика появится после первых повторений"
+          hint="Добавь книгу в колоду и повтори её карточки — здесь будет видно, как она выучена."
+          action={
+            <Link to="/books" className="btn-ghost">
+              <Icon name="book" size={16} />
+              К книгам
+            </Link>
+          }
+        />
+      </section>
+    )
   }
 
   return (
-    <section className="reveal mt-8" style={{ '--reveal-delay': '160ms' } as React.CSSProperties}>
-      <h2 className="font-display text-lg font-semibold text-ink">Настройки</h2>
-      <div className="mt-3 card">
-        <p className="text-sm font-medium text-ink">Карточек в день</p>
-        <p className="mt-0.5 text-sm text-ink-faint">
-          Сколько карточек присылает бот и берётся в сессию повторения.
-        </p>
-        {isLoading ? (
-          <Loading label="Загружаем настройки…" />
-        ) : loadError ? (
-          <p className="mt-3 text-sm text-danger">Не удалось загрузить настройки</p>
-        ) : data ? (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {data.options.map((n) => (
-              <Pill
-                key={n}
-                active={n === data.daily_cards}
-                onClick={() => choose(n)}
-                disabled={saving}
-              >
-                {n}
-              </Pill>
+    <>
+      <section className="reveal mt-8" style={{ '--reveal-delay': '80ms' } as React.CSSProperties}>
+        <h2 className="font-display text-lg font-semibold text-ink">Статистика</h2>
+        <div className="card mt-3">
+          <StatsSummary stats={data} />
+        </div>
+      </section>
+
+      <section className="reveal mt-8" style={{ '--reveal-delay': '140ms' } as React.CSSProperties}>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="font-display text-lg font-semibold text-ink">Активность</h2>
+          <span className="text-xs text-ink-faint">12 недель</span>
+        </div>
+        <div className="card mt-3">
+          <ActivityHeatmap activity={data.activity} />
+        </div>
+      </section>
+
+      {data.books.length > 0 ? (
+        <section className="reveal mt-8" style={{ '--reveal-delay': '200ms' } as React.CSSProperties}>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h2 className="font-display text-lg font-semibold text-ink">Книги</h2>
+            <ul aria-hidden="true" className="flex gap-3 text-xs text-ink-faint">
+              {MASTERY_PARTS.map(({ label, className }) => (
+                <li key={label} className="flex items-center gap-1.5">
+                  <span className={`h-2 w-2 rounded-full ${className}`} />
+                  {label}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="mt-3 space-y-3">
+            {data.books.map((book) => (
+              <BookMastery key={book.folder} book={book} cover={coverOf(book.folder)} />
             ))}
           </div>
-        ) : null}
-        {saveError ? <p className="mt-3 text-sm text-danger">{saveError}</p> : null}
+        </section>
+      ) : null}
+    </>
+  )
+}
+
+// --- Напоминания: живут в боте ---
+
+function RemindersCard() {
+  return (
+    <section className="reveal mt-8" style={{ '--reveal-delay': '260ms' } as React.CSSProperties}>
+      <h2 className="font-display text-lg font-semibold text-ink">Напоминания</h2>
+      <div className="card mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <p className="flex-1 text-sm text-ink-soft">
+          Бот клуба пишет в 10:00 МСК, когда в колоде есть карточки к повторению.
+          Выключить — /stop, включить снова — /start.
+        </p>
+        <a href={BOT_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost shrink-0">
+          <BrandIcon brand="telegram" size={16} />
+          Открыть бота
+        </a>
       </div>
     </section>
   )

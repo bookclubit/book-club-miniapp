@@ -5,9 +5,15 @@ import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
-import TelegramLoginButton from '../components/TelegramLoginButton'
+import TelegramBotLogin from '../components/TelegramBotLogin'
 import { fetchPlanSlots, speakerUrl, type PlanSlot } from '../lib/api'
-import { applyMembership, claimTopic, fetchMembership, type Membership } from '../lib/account'
+import {
+  applyMembership,
+  claimTopic,
+  fetchMembership,
+  type Membership,
+  type PlatformUser,
+} from '../lib/account'
 import { formatEventDate, formatWeekday } from '../lib/format'
 import { useAuth } from '../lib/useAuth'
 
@@ -15,7 +21,7 @@ import { useAuth } from '../lib/useAuth'
 // выбор свободной темы — для участников клуба. Перекидывать в бота не нужно,
 // хотя те же шаги есть и там (/speaker) — состояние общее, оно в D1.
 function BecomeSpeaker() {
-  const { user, loading, inTelegram, loginWithWidget } = useAuth()
+  const { user, loading, inTelegram, completeLogin } = useAuth()
   const {
     data: membership,
     error,
@@ -31,7 +37,7 @@ function BecomeSpeaker() {
     )
   }
 
-  if (!user) return <LoginView inTelegram={inTelegram} onWidget={loginWithWidget} />
+  if (!user) return <LoginView inTelegram={inTelegram} onLogin={completeLogin} />
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
@@ -86,13 +92,11 @@ function BecomeSpeaker() {
 
 function LoginView({
   inTelegram,
-  onWidget,
+  onLogin,
 }: {
   inTelegram: boolean
-  onWidget: (data: Record<string, string>) => Promise<void>
+  onLogin: (user: PlatformUser) => void
 }) {
-  const [error, setError] = useState<string | null>(null)
-
   return (
     <div className="mx-auto max-w-lg px-4 py-16 text-center sm:px-6">
       <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent-soft text-accent-strong">
@@ -104,19 +108,13 @@ function LoginView({
         одобрят.
       </p>
 
-      <div className="mt-6 flex justify-center">
+      <div className="mt-6">
         {inTelegram ? (
           <p className="text-sm text-ink-faint">Входим автоматически…</p>
         ) : (
-          <TelegramLoginButton
-            onAuth={(data) => {
-              setError(null)
-              onWidget(data).catch(() => setError('Не удалось войти. Попробуй ещё раз.'))
-            }}
-          />
+          <TelegramBotLogin onLogin={onLogin} />
         )}
       </div>
-      {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}
     </div>
   )
 }

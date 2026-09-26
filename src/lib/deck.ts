@@ -1,6 +1,6 @@
-// Персональная колода пользователя (localStorage): что человек добавил себе
-// к изучению. Хранится как ПОДПИСКИ, а не замороженный список карточек —
-// поэтому новые карточки в подписанных книгах/главах подгружаются автоматически.
+// Персональная колода: что человек добавил себе к изучению. Хранится как
+// ПОДПИСКИ, а не замороженный список карточек — поэтому новые карточки
+// в подписанных книгах/главах подгружаются автоматически.
 //
 //   books    — папки книг, подписанные целиком (все карточки, включая будущие)
 //   chapters — ключи `${folder}::${order}` для подписки на отдельную главу
@@ -8,28 +8,29 @@
 //              Подписаться на главу больше негде: своей страницы у главы нет,
 //              в колоду добавляется книга целиком. Старые подписки читаем —
 //              у кого они уже есть, повторение по ним работает как раньше.
+//
+// Вошедшим колода хранится на сервере и общая с ботом — по ней он напоминает
+// о повторении. Здесь — гостевое хранилище (localStorage) и чистые хелперы;
+// кто откуда читает, решает lib/useDeck.ts.
 
-import type { Flashcard } from '../types'
-
-export interface Deck {
-  books: string[]
-  chapters: string[]
-}
+import type { Deck, Flashcard } from '../types'
 
 const KEY = 'study-deck'
+
+export const EMPTY_DECK: Deck = { books: [], chapters: [] }
 
 export function loadDeck(): Deck {
   try {
     const raw = localStorage.getItem(KEY)
-    if (!raw) return { books: [], chapters: [] }
+    if (!raw) return EMPTY_DECK
     const d = JSON.parse(raw) as Partial<Deck>
     return { books: d.books ?? [], chapters: d.chapters ?? [] }
   } catch {
-    return { books: [], chapters: [] }
+    return EMPTY_DECK
   }
 }
 
-function saveDeck(deck: Deck): void {
+export function saveDeck(deck: Deck): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(deck))
   } catch {
@@ -37,35 +38,34 @@ function saveDeck(deck: Deck): void {
   }
 }
 
-export function isBookInDeck(folder: string): boolean {
-  return loadDeck().books.includes(folder)
+export function isDeckEmpty(deck: Deck): boolean {
+  return deck.books.length === 0 && deck.chapters.length === 0
 }
 
-// Подписать книгу целиком: отдельные подписки на её главы становятся лишними.
-export function addBookToDeck(folder: string): Deck {
-  const d = loadDeck()
-  const next: Deck = {
-    books: d.books.includes(folder) ? d.books : [...d.books, folder],
-    chapters: d.chapters.filter((k) => !k.startsWith(`${folder}::`)),
-  }
-  saveDeck(next)
-  return next
+// Книги колоды: целиком и те, от которых в колоде отдельные главы.
+export function deckFolders(deck: Deck): string[] {
+  return [...new Set([...deck.books, ...deck.chapters.map((k) => k.split('::')[0])])]
 }
 
-export function removeBookFromDeck(folder: string): Deck {
-  const d = loadDeck()
-  const next: Deck = {
-    books: d.books.filter((f) => f !== folder),
-    chapters: d.chapters.filter((k) => !k.startsWith(`${folder}::`)),
+// Книга целиком: отдельные подписки на её главы становятся лишними.
+export function withBook(deck: Deck, folder: string): Deck {
+  return {
+    books: deck.books.includes(folder) ? deck.books : [...deck.books, folder],
+    chapters: deck.chapters.filter((k) => !k.startsWith(`${folder}::`)),
   }
-  saveDeck(next)
-  return next
+}
+
+export function withoutBook(deck: Deck, folder: string): Deck {
+  return {
+    books: deck.books.filter((f) => f !== folder),
+    chapters: deck.chapters.filter((k) => !k.startsWith(`${folder}::`)),
+  }
 }
 
 // Какие карточки книги в колоде: 'all' | набор номеров глав | null (ничего).
 export type CardScope = 'all' | Set<string> | null
 
-export function bookCardScope(folder: string, deck: Deck = loadDeck()): CardScope {
+export function bookCardScope(folder: string, deck: Deck): CardScope {
   if (deck.books.includes(folder)) return 'all'
   const orders = deck.chapters
     .filter((k) => k.startsWith(`${folder}::`))

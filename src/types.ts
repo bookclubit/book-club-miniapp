@@ -220,6 +220,37 @@ export type StudyProgress = Record<string, CardProgress>
 // Оценка ответа пользователем (влияет на SM-2).
 export type ReviewGrade = 'again' | 'hard' | 'good' | 'easy'
 
+// --- Колода и статистика: общие с ботом (D1) ---
+
+// Колода — подписки, а не список карточек: книги целиком (папки) и отдельные
+// главы (`${folder}::${order}`). Вошедшим — с сервера, гостям — localStorage.
+export interface Deck {
+  books: string[]
+  chapters: string[]
+}
+
+// Как выучена книга. Считает бот (lib/stats.ts) — те же цифры в /status.
+export interface BookStats {
+  folder: string
+  title: string
+  in_deck: boolean // в колоде вся книга или хотя бы глава
+  total: number
+  fresh: number // ни разу не повторялись
+  learning: number // повторялись, интервал меньше 21 дня
+  mature: number // выучены: интервал от 21 дня
+  due: number // к повторению — только карточки из колоды
+  last_reviewed: number | null
+}
+
+export interface UserStats {
+  totals: { cards: number; fresh: number; learning: number; mature: number; due: number }
+  reviews: { total: number; today: number; week: number; accuracy: number | null }
+  streak: { current: number; best: number }
+  // Повторения по дням (МСК) за 12 недель, от давних к сегодняшнему.
+  activity: { date: string; count: number }[]
+  books: BookStats[]
+}
+
 // --- Единый реестр контента (index.json в корне book-club-data) ---
 // raw.githubusercontent.com не листает директории, поэтому список книг, глав,
 // событий и спикеров ведёт CMS в index.json; приложение читает его при старте.

@@ -25,6 +25,7 @@ import {
   saveProgress,
 } from '../lib/storage'
 import { useAuth } from '../lib/useAuth'
+import { useDeck } from '../lib/useDeck'
 import type { Flashcard, ReviewGrade, StudyProgress } from '../types'
 
 // Кнопки оценки: семантические цвета, текст ≥ 4.5:1 на мягком фоне.
@@ -57,6 +58,7 @@ const GRADES: { grade: ReviewGrade; label: string; className: string }[] = [
 function Study() {
   const { bookId } = useParams<{ bookId: string }>()
   const { user, loading: authLoading } = useAuth()
+  const { deck, ready: deckReady } = useDeck()
 
   const { data, error, isLoading } = useSWR<Flashcard[]>(
     bookId ? `flashcards:${bookId}` : null,
@@ -78,12 +80,12 @@ function Study() {
   const [syncNote, setSyncNote] = useState<string | null>(null)
 
   // Изучаем только карточки, добавленные в колоду (вся книга или отдельные главы).
-  const deckCards = bookId && data ? cardsInScope(data, bookCardScope(bookId)) : []
+  const deckCards = bookId && data ? cardsInScope(data, bookCardScope(bookId, deck)) : []
 
   // Инициализация сессии: грузим прогресс и собираем очередь карточек «на сегодня».
-  // Вошедшим сначала дожидаемся серверного прогресса — он источник истины.
+  // Вошедшим сначала дожидаемся серверного прогресса и колоды — они источник истины.
   useEffect(() => {
-    if (!bookId || !data || ready || authLoading) return
+    if (!bookId || !data || ready || authLoading || !deckReady) return
     if (user && !server.data && !server.error) return // ждём сервер
 
     let saved: StudyProgress
@@ -97,11 +99,11 @@ function Study() {
       }
     }
 
-    const scoped = cardsInScope(data, bookCardScope(bookId))
+    const scoped = cardsInScope(data, bookCardScope(bookId, deck))
     setProgress(saved)
     setQueue(scoped.filter((card) => isDue(saved[card.id])).map((card) => card.id))
     setReady(true)
-  }, [bookId, data, ready, authLoading, user, server.data, server.error])
+  }, [bookId, data, ready, authLoading, deckReady, deck, user, server.data, server.error])
 
   if (!bookId) return <ErrorState message="Не указана книга." />
   if (isLoading || (!ready && !error && data && data.length > 0)) {
@@ -128,7 +130,13 @@ function Study() {
           ) : (
             <EmptyState
               title="Этих карточек нет в твоей колоде"
-              hint="Добавь их на странице книги или главы — и они появятся здесь."
+              hint="Нажми «В колоду» на странице книги — и они появятся здесь."
+              action={
+                <Link to={`/book/${bookId}`} className="btn-ghost">
+                  <Icon name="book" size={16} />
+                  К книге
+                </Link>
+              }
             />
           )}
         </div>
