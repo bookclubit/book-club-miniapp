@@ -35,7 +35,7 @@ async function fetchCardsOf(folders: string[]): Promise<Record<string, Flashcard
 // с его напоминанием), у гостей — с устройства.
 function StudyIndex() {
   const { user, loading: authLoading, inTelegram } = useAuth()
-  const { deck, ready: deckReady, error: deckError } = useDeck()
+  const { deck, ready: deckReady } = useDeck()
   const folders = deckFolders(deck)
 
   const books = useSWR<BookWithFolder[]>('books', fetchBooks)
@@ -55,7 +55,7 @@ function StudyIndex() {
     books.isLoading ||
     cards.isLoading ||
     (Boolean(user) && server.isLoading)
-  const error = deckError ?? books.error ?? cards.error
+  const error = books.error ?? cards.error
 
   let list: StudyBook[] = []
   if (!loading && !error && books.data && (folders.length === 0 || cards.data)) {

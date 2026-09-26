@@ -12,7 +12,6 @@ export interface DeckState {
   deck: Deck
   // Колода загружена (у вошедших — с сервера): до этого решать по ней рано.
   ready: boolean
-  error: Error | undefined
   addBook: (folder: string) => Promise<void>
   removeBook: (folder: string) => Promise<void>
 }
@@ -22,11 +21,17 @@ export function useDeck(): DeckState {
   const userId = user?.id
   const key = loading ? null : userId !== undefined ? `deck:${userId}` : 'deck:guest'
 
-  const { data, error, mutate } = useSWR<Deck>(key, async () => {
+  const { data, mutate } = useSWR<Deck>(key, async () => {
     if (userId === undefined) return loadDeck()
-    const deck = await fetchServerDeck()
-    saveDeck(deck) // кэш на устройстве
-    return deck
+    try {
+      const deck = await fetchServerDeck()
+      saveDeck(deck) // кэш на устройстве
+      return deck
+    } catch {
+      // Сервер недоступен — повторять можно по копии колоды на устройстве,
+      // как и прогресс в Study. Изменить колоду без сервера не выйдет.
+      return loadDeck()
+    }
   })
 
   async function change(action: 'add' | 'remove', folder: string): Promise<void> {
@@ -51,7 +56,6 @@ export function useDeck(): DeckState {
   return {
     deck: data ?? EMPTY_DECK,
     ready: data !== undefined,
-    error: error as Error | undefined,
     addBook: (folder) => change('add', folder),
     removeBook: (folder) => change('remove', folder),
   }
