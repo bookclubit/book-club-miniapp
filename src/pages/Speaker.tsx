@@ -17,7 +17,7 @@ import {
   mediaUrl,
 } from '../lib/api'
 import type { ChapterTopics, TopicClaim } from '../lib/api'
-import { collectSpeakerTalks } from '../lib/speakers'
+import { collectSpeakerTalks, filterTalks, talkFilterOptions } from '../lib/speakers'
 import { SPEAKER_SOCIALS } from '../types'
 import type { ClubEvent, IndexSpeaker } from '../types'
 
@@ -60,25 +60,12 @@ function Speaker() {
     chapters.data ?? [],
   )
 
-  // Книги, в которых спикер участвовал (для фильтра).
-  const books: Array<{ id: string; title: string }> = []
-  for (const t of talks) {
-    if (t.bookId && !books.some((b) => b.id === t.bookId)) {
-      books.push({ id: t.bookId, title: bookTitleById(t.bookId) ?? t.bookId })
-    }
-  }
-
-  // Годы докладов (для фильтра) — от новых к старым. У доклада без встречи
-  // даты нет: такой в фильтр по году не попадает.
-  const years = [
-    ...new Set(talks.map((t) => t.date?.slice(0, 4)).filter((y): y is string => Boolean(y))),
-  ].sort((a, b) => b.localeCompare(a))
-
-  const visible = talks.filter(
-    (t) =>
-      (book === 'all' || t.bookId === book) &&
-      (year === 'all' || t.date?.slice(0, 4) === year),
-  )
+  // Фильтры — книги, по которым спикер выступал, и годы докладов. Правила
+  // общие с личным профилем (lib/speakers.ts).
+  const options = talkFilterOptions(talks)
+  const books = options.books.map((id) => ({ id, title: bookTitleById(id) ?? id }))
+  const years = options.years
+  const visible = filterTalks(talks, { book, year })
 
   const socials = SPEAKER_SOCIALS.map((s) => ({
     ...s,

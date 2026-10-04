@@ -366,6 +366,15 @@ export async function fetchFlashcards(bookId: string): Promise<Flashcard[]> {
   return (await res.json()) as Flashcard[]
 }
 
+// Карточки нескольких книг одной пачкой: хуки SWR нельзя звать в цикле.
+// Ключ SWR: `study-cards:${folders.join(',')}`.
+export async function fetchFlashcardsOf(folders: string[]): Promise<Record<string, Flashcard[]>> {
+  const entries = await Promise.all(
+    folders.map(async (folder) => [folder, await fetchFlashcards(folder)] as const),
+  )
+  return Object.fromEntries(entries)
+}
+
 // Загружает события клуба из events/ (список — в реестре). Ключ SWR: 'events'.
 // Файла из реестра может уже не быть: при переносе даты CMS переименовывает
 // файл встречи, а реестр пересобирается после мержа и ещё несколько минут

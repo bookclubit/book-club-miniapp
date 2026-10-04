@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import useSWR from 'swr'
 import BrandIcon from '../components/BrandIcon'
 import ErrorState from '../components/ErrorState'
+import FilterPills from '../components/FilterPills'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
 import TalkList from '../components/TalkList'
@@ -9,20 +11,31 @@ import TelegramBotLogin from '../components/TelegramBotLogin'
 import {
   bookTitleById,
   fetchAllChapters,
+  fetchBooks,
   fetchClaims,
   fetchEvents,
   fetchSpeakers,
+  mediaUrl,
+  type BookWithFolder,
   type ChapterTopics,
   type TopicClaim,
 } from '../lib/api'
 import { fetchMembership, type Membership } from '../lib/account'
 import { formatEventDate, formatWeekday, plural } from '../lib/format'
-import { collectSpeakerTalks, collectUpcomingTalks, type UpcomingTalk } from '../lib/speakers'
+import {
+  collectSpeakerTalks,
+  collectUpcomingTalks,
+  filterTalks,
+  NO_TALK_FILTER,
+  talkFilterOptions,
+  type TalkFilter,
+  type UpcomingTalk,
+} from '../lib/speakers'
 import { useAuth } from '../lib/useAuth'
 import type { ClubEvent, IndexSpeaker } from '../types'
 
 // Профиль: кто вошёл и его доклады — следующий и уже прочитанные.
-// Колода и статистика изучения — на вкладке «Карточки».
+// Колода, повторение и прогресс — на вкладке «Карточки».
 function Account() {
   const { user, loading, inTelegram, completeLogin, logout } = useAuth()
 
@@ -88,9 +101,9 @@ function Account() {
             <Icon name="cards" size={18} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-semibold text-ink">Карточки и статистика</span>
+            <span className="block font-semibold text-ink">Карточки и прогресс</span>
             <span className="block text-sm text-ink-faint">
-              Колода, повторение и прогресс — на вкладке «Карточки»
+              Колода, повторение и активность — на вкладке «Карточки»
             </span>
           </span>
           <Icon
@@ -110,6 +123,9 @@ function Account() {
 }
 
 // --- Доклады: следующий и состоявшиеся ---
+
+// Сколько последних докладов видно сразу; остальные — под «Показать все».
+const TALKS_PREVIEW = 5
 
 /**
  * «Я» как спикер каталога. Кто это, знает бот (`/api/membership`): человек из
@@ -136,6 +152,10 @@ function MyTalks() {
   const events = useSWR<ClubEvent[]>(member ? 'events' : null, fetchEvents)
   const claims = useSWR<TopicClaim[]>(member ? 'topic-claims' : null, fetchClaims)
   const chapters = useSWR<ChapterTopics[]>(member ? 'chapters-all' : null, fetchAllChapters)
+  // Обложки книг — у будущих докладов; ключ общий с каталогом.
+  const books = useSWR<BookWithFolder[]>(member ? 'books' : null, fetchBooks)
+  const [showAll, setShowAll] = useState(false)
+  const [filter, setFilter] = useState<TalkFilter>(NO_TALK_FILTER)
 
   if (membership.isLoading) {
     return (
@@ -156,7 +176,13 @@ function MyTalks() {
   // Темы берут участники клуба — остальным показываем, как им стать.
   if (!member) return <JoinCard status={membership.data.status} />
 
-  if (speakers.isLoading || events.isLoading || claims.isLoading || chapters.isLoading) {
+  if (
+    speakers.isLoading ||
+    events.isLoading ||
+    claims.isLoading ||
+    chapters.isLoading ||
+    books.isLoading
+  ) {
     return (
       <section className="mt-10">
         <Loading label="Загружаем доклады…" />
@@ -178,6 +204,18 @@ function MyTalks() {
     ? collectSpeakerTalks(events.data ?? [], me, claims.data ?? [], chapters.data ?? [])
     : []
   const publicId = speakers.data?.find((s) => s.id === me?.id)?.id
+  const coverOf = (folder?: string) => books.data?.find((b) => b.folder === folder)?.meta.cover
+
+  // Сразу — последние доклады; весь список открывается вместе с фильтрами
+  // по книге и году (те же правила, что в профиле спикера).
+  const hasMore = past.length > TALKS_PREVIEW
+  const options = talkFilterOptions(past)
+  const shown = showAll ? filterTalks(past, filter) : past.slice(0, TALKS_PREVIEW)
+
+  function toggleAll() {
+    setShowAll(!showAll)
+    setFilter(NO_TALK_FILTER)
+  }
 
   return (
     <>
@@ -202,7 +240,11 @@ function MyTalks() {
         ) : (
           <div className="mt-3 space-y-3">
             {upcoming.map((talk) => (
-              <UpcomingCard key={talk.eventId + talk.talkTitle} talk={talk} />
+              <UpcomingCard
+                key={talk.eventId + talk.talkTitle}
+                talk={talk}
+                cover={coverOf(talk.bookId)}
+              />
             ))}
           </div>
         )}
@@ -222,9 +264,54 @@ function MyTalks() {
             Здесь появятся твои выступления — со слайдами и записями.
           </p>
         ) : (
-          <div className="mt-1">
-            <TalkList talks={past} />
-          </div>
+          <>
+            {showAll && (options.books.length > 1 || options.years.length > 1) ? (
+              <div className="mt-3 space-y-2">
+                {options.books.length > 1 ? (
+                  <FilterPills
+                    label="книги"
+                    allLabel="Все книги"
+                    options={options.books.map((id) => ({ id, label: bookTitleById(id) ?? id }))}
+                    active={filter.book}
+                    onSelect={(book) => setFilter({ ...filter, book })}
+                  />
+                ) : null}
+                {options.years.length > 1 ? (
+                  <FilterPills
+                    label="годы"
+                    allLabel="Все годы"
+                    options={options.years.map((y) => ({ id: y, label: y }))}
+                    active={filter.year}
+                    onSelect={(year) => setFilter({ ...filter, year })}
+                  />
+                ) : null}
+              </div>
+            ) : null}
+            <div className="mt-1">
+              {shown.length === 0 ? (
+                <p className="py-3 text-sm text-ink-faint">Под фильтр ничего не подошло.</p>
+              ) : (
+                <TalkList talks={shown} />
+              )}
+            </div>
+            {hasMore ? (
+              <button
+                type="button"
+                onClick={toggleAll}
+                aria-expanded={showAll}
+                className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors duration-200 hover:text-ink"
+              >
+                {showAll
+                  ? 'Свернуть'
+                  : `Показать все ${past.length} ${plural(past.length, 'доклад', 'доклада', 'докладов')}`}
+                <Icon
+                  name="chevron"
+                  size={15}
+                  className={`transition-transform duration-200 ${showAll ? 'rotate-180' : ''}`}
+                />
+              </button>
+            ) : null}
+          </>
         )}
         {publicId ? (
           <p className="mt-3 text-sm">
@@ -238,32 +325,44 @@ function MyTalks() {
   )
 }
 
-function UpcomingCard({ talk }: { talk: UpcomingTalk }) {
+function UpcomingCard({ talk, cover }: { talk: UpcomingTalk; cover?: string }) {
   const book = bookTitleById(talk.bookId)
   return (
-    <div className="card">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span className="flex items-center gap-1.5 font-semibold text-accent-strong">
-          <Icon name="calendar" size={14} />
-          {formatEventDate(talk.date)}, {formatWeekday(talk.date)} · {talk.time} МСК
-        </span>
-        {talk.pending ? (
-          <span className="rounded-full bg-warn-soft px-2.5 py-0.5 font-semibold text-warn">
-            заявка у админа
+    <div className="card flex gap-4">
+      {cover ? (
+        <img
+          src={mediaUrl(cover)}
+          alt=""
+          width={56}
+          height={80}
+          loading="lazy"
+          className="h-20 w-14 shrink-0 rounded object-cover"
+        />
+      ) : null}
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+          <span className="flex items-center gap-1.5 font-semibold text-accent-strong">
+            <Icon name="calendar" size={14} />
+            {formatEventDate(talk.date)}, {formatWeekday(talk.date)} · {talk.time} МСК
           </span>
-        ) : (
-          <span className="rounded-full bg-success-soft px-2.5 py-0.5 font-semibold text-success">
-            подтверждён
-          </span>
-        )}
+          {talk.pending ? (
+            <span className="rounded-full bg-warn-soft px-2.5 py-0.5 font-semibold text-warn">
+              заявка у админа
+            </span>
+          ) : (
+            <span className="rounded-full bg-success-soft px-2.5 py-0.5 font-semibold text-success">
+              подтверждён
+            </span>
+          )}
+        </div>
+        <h3 className="font-display mt-2 text-lg font-semibold leading-snug text-ink">
+          {talk.talkTitle}
+        </h3>
+        <p className="mt-1 text-sm text-ink-faint">
+          {talk.stream ? `Книжный клуб ${talk.stream}` : talk.eventTitle}
+          {book ? ` · ${book}` : ''}
+        </p>
       </div>
-      <h3 className="font-display mt-2 text-lg font-semibold leading-snug text-ink">
-        {talk.talkTitle}
-      </h3>
-      <p className="mt-1 text-sm text-ink-faint">
-        {talk.stream ? `Книжный клуб ${talk.stream}` : talk.eventTitle}
-        {book ? ` · ${book}` : ''}
-      </p>
     </div>
   )
 }

@@ -174,6 +174,36 @@ export function collectSpeakerTalks(
   })
 }
 
+// Фильтр докладов: папка книги и год, 'all' — без фильтра.
+export interface TalkFilter {
+  book: string
+  year: string
+}
+
+export const NO_TALK_FILTER: TalkFilter = { book: 'all', year: 'all' }
+
+/**
+ * Что можно выбрать в фильтре докладов: книги, по которым спикер выступал,
+ * и годы — от новых к старым. У доклада без встречи даты нет: в годы он не
+ * попадает.
+ */
+export function talkFilterOptions(talks: SpeakerTalk[]): { books: string[]; years: string[] } {
+  const books = talks.map((t) => t.bookId).filter((id): id is string => Boolean(id))
+  const years = talks.map((t) => t.date?.slice(0, 4)).filter((y): y is string => Boolean(y))
+  return {
+    books: [...new Set(books)],
+    years: [...new Set(years)].sort((a, b) => b.localeCompare(a)),
+  }
+}
+
+export function filterTalks(talks: SpeakerTalk[], filter: TalkFilter): SpeakerTalk[] {
+  return talks.filter(
+    (t) =>
+      (filter.book === 'all' || t.bookId === filter.book) &&
+      (filter.year === 'all' || t.date?.slice(0, 4) === filter.year),
+  )
+}
+
 // Доклад, который ещё впереди: тема взята, эфир не прошёл.
 export interface UpcomingTalk {
   eventId: string

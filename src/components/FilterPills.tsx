@@ -65,7 +65,9 @@ function FilterPills({
     recount()
     const observer = new ResizeObserver(recount)
     observer.observe(row)
-    observer.observe(probe) // ширины меняются, когда подгрузился шрифт
+    // Ширины «таблеток» меняются, когда подгрузился шрифт. Следим за ними
+    // самими: эталон теперь шириной с ряд и от шрифта не зависит.
+    for (const kid of Array.from(probe.children)) observer.observe(kid)
     return () => observer.disconnect()
   }, [options])
 
@@ -84,6 +86,9 @@ function FilterPills({
       key={option.id}
       size="sm"
       active={active === option.id}
+      // Выбранное значение показываем, даже если оно не влезло по ширине:
+      // тогда сжимается оно, а не уезжает за край кнопка «…».
+      shrink={active === option.id}
       onClick={() => {
         onSelect(option.id)
         setOpen(false)
@@ -112,11 +117,13 @@ function FilterPills({
         <div className="mt-2 flex flex-wrap gap-2">{hidden.map(chip)}</div>
       ) : null}
 
-      {/* Ряд-эталон для замера: не видим, из потока выведен, но размеры настоящие. */}
+      {/* Ряд-эталон для замера: не видим, из потока выведен, но размеры настоящие.
+          Шириной с ряд и обрезан: иначе невидимые «таблетки» растягивали
+          страницу вбок, и на телефоне она прокручивалась по горизонтали. */}
       <div
         ref={probeRef}
         aria-hidden="true"
-        className="pointer-events-none invisible absolute left-0 top-0 flex gap-2"
+        className="pointer-events-none invisible absolute inset-x-0 top-0 flex gap-2 overflow-hidden"
       >
         <Pill size="sm" active={false} onClick={() => {}}>
           {allLabel}

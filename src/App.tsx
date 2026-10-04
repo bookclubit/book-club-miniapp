@@ -67,6 +67,8 @@ function AnimatedRoutes() {
             <Route path="/author/:authorId" element={<Author />} />
             <Route path="/book/:bookId/chapter/:chapterId" element={<ChapterRedirect />} />
             <Route path="/study" element={<StudyIndex />} />
+            {/* Общая сессия по всем книгам колоды — Study без книги в маршруте. */}
+            <Route path="/study/all" element={<Study />} />
             <Route path="/study/:bookId" element={<Study />} />
             <Route path="*" element={<Home />} />
           </Routes>
