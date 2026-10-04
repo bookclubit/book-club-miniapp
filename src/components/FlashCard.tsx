@@ -96,9 +96,11 @@ function FlashCard({ card, flipped, onFlip }: FlashCardProps) {
           <div className="w-full max-w-prose">
             <p className="text-[15px] leading-relaxed text-ink-soft">{back}</p>
             {example && isNote ? (
-              // Пояснение — не часть ответа: прячем под кнопку, чтобы сначала
-              // вспомнить самому. По нажатию карточка раздвигается.
-              <div className="mt-4">
+              // Пояснение — не часть ответа: прячем его, чтобы сначала вспомнить
+              // самому. Раскрывает слово «Объяснение» по центру со стрелкой под
+              // ним — тихая подпись, а не кнопка-коробка: главный на карточке
+              // ответ. По нажатию карточка раздвигается.
+              <div className="mt-5">
                 <button
                   type="button"
                   aria-expanded={noteOpen}
@@ -107,12 +109,12 @@ function FlashCard({ card, flipped, onFlip }: FlashCardProps) {
                     e.stopPropagation()
                     setOpenFor(noteOpen ? null : card.id)
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-btn border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors duration-200 hover:border-line-strong hover:text-ink"
+                  className="mx-auto flex flex-col items-center gap-0.5 text-xs font-semibold text-ink-faint transition-colors duration-200 hover:text-ink"
                 >
                   Объяснение
                   <Icon
                     name="chevron"
-                    size={14}
+                    size={16}
                     className={`transition-transform duration-200 ${noteOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
