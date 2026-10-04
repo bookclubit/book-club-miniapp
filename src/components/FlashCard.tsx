@@ -119,10 +119,15 @@ function FlashCard({ card, flipped, onFlip }: FlashCardProps) {
                   />
                 </button>
                 <div className={`expand ${noteOpen ? 'open' : ''}`}>
+                  {/* Отступ — внутри сворачиваемой обёртки, иначе он остался бы
+                      виден у закрытого блока. Плашка та же, что у примера кода:
+                      оба — дополнение к ответу, а не его продолжение. */}
                   <div className="overflow-hidden">
-                    <p className="whitespace-pre-wrap pt-3 text-sm leading-relaxed text-ink-soft">
-                      {example}
-                    </p>
+                    <div className="pt-3">
+                      <p className="whitespace-pre-wrap rounded-btn border border-line bg-canvas px-3.5 py-2.5 text-sm leading-relaxed text-ink-soft">
+                        {example}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
