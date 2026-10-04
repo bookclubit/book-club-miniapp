@@ -173,3 +173,46 @@ export function collectSpeakerTalks(
     return (b.chapterOrder ?? 0) - (a.chapterOrder ?? 0)
   })
 }
+
+// Доклад, который ещё впереди: тема взята, эфир не прошёл.
+export interface UpcomingTalk {
+  eventId: string
+  eventTitle: string
+  stream?: number
+  date: string
+  time: string
+  bookId?: string
+  talkTitle: string
+  /** Заявка ещё на модерации — админ тему не подтвердил. */
+  pending: boolean
+}
+
+/**
+ * Будущие доклады спикера — для личного профиля («Следующий доклад»).
+ * Зеркало `collectSpeakerTalks`: там заявка считается докладом, только когда
+ * эфир прошёл (`isArchived`), здесь — пока не прошёл. Ближайший — первым.
+ */
+export function collectUpcomingTalks(
+  events: ClubEvent[],
+  speaker: IndexSpeaker,
+  claims: TopicClaim[],
+): UpcomingTalk[] {
+  const live = events.filter((e): e is LiveTalkEvent => e.type === 'live-talk')
+  const talks: UpcomingTalk[] = []
+  for (const c of claims) {
+    if (!claimMatchesSpeaker(c, speaker)) continue
+    const e = findEventForClaim(live, c)
+    if (!e || isArchived(e)) continue
+    talks.push({
+      eventId: e.id,
+      eventTitle: e.title,
+      ...(e.stream ? { stream: e.stream } : {}),
+      date: e.date,
+      time: e.time,
+      bookId: bookFolderById(c.book_id ?? e.book_id) ?? c.book_id ?? e.book_id,
+      talkTitle: c.topic_title,
+      pending: c.status !== 'confirmed',
+    })
+  }
+  return talks.sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`))
+}

@@ -5,6 +5,7 @@ import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
+import StudyStats from '../components/StudyStats'
 import { fetchServerProgress, serverToStudyProgress, type ServerCardProgress } from '../lib/account'
 import { fetchBooks, fetchFlashcards, mediaUrl, type BookWithFolder } from '../lib/api'
 import { bookCardScope, cardsInScope, deckFolders } from '../lib/deck'
@@ -86,13 +87,6 @@ function StudyIndex() {
           Интервальное повторение по алгоритму SM-2: отвечай и отмечай, насколько легко
           вспомнил.
         </p>
-        {user ? (
-          <p className="mt-3 text-sm">
-            <Link to="/account" className="link-inline">
-              Статистика изучения
-            </Link>
-          </p>
-        ) : null}
       </header>
 
       {!user && !authLoading && !inTelegram ? <GuestNote /> : null}
@@ -167,6 +161,9 @@ function StudyIndex() {
           </div>
         )}
       </div>
+
+      {/* Статистика — здесь же: она про карточки, а не про человека. */}
+      {user ? <StudyStats userId={user.id} /> : null}
     </div>
   )
 }

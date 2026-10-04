@@ -1,21 +1,28 @@
 import { Link } from 'react-router-dom'
 import useSWR from 'swr'
-import ActivityHeatmap from '../components/ActivityHeatmap'
-import BookMastery from '../components/BookMastery'
 import BrandIcon from '../components/BrandIcon'
-import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
 import Icon from '../components/Icon'
 import Loading from '../components/Loading'
-import StatsSummary from '../components/StatsSummary'
+import TalkList from '../components/TalkList'
 import TelegramBotLogin from '../components/TelegramBotLogin'
-import { BOT_URL, fetchBooks, type BookWithFolder } from '../lib/api'
-import { fetchStats } from '../lib/account'
-import { MASTERY_PARTS } from '../lib/mastery'
+import {
+  bookTitleById,
+  fetchAllChapters,
+  fetchClaims,
+  fetchEvents,
+  fetchSpeakers,
+  type ChapterTopics,
+  type TopicClaim,
+} from '../lib/api'
+import { fetchMembership, type Membership } from '../lib/account'
+import { formatEventDate, formatWeekday, plural } from '../lib/format'
+import { collectSpeakerTalks, collectUpcomingTalks, type UpcomingTalk } from '../lib/speakers'
 import { useAuth } from '../lib/useAuth'
-import type { UserStats } from '../types'
+import type { ClubEvent, IndexSpeaker } from '../types'
 
-// Профиль: кто вошёл, статистика изучения и напоминания бота.
+// Профиль: кто вошёл и его доклады — следующий и уже прочитанные.
+// Колода и статистика изучения — на вкладке «Карточки».
 function Account() {
   const { user, loading, inTelegram, completeLogin, logout } = useAuth()
 
@@ -73,8 +80,26 @@ function Account() {
         </div>
       </header>
 
-      <StudyStats userId={user.id} />
-      <RemindersCard />
+      <MyTalks />
+
+      <section className="reveal mt-10" style={{ '--reveal-delay': '200ms' } as React.CSSProperties}>
+        <Link to="/study" className="card card-hover group flex items-center gap-4">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent-strong">
+            <Icon name="cards" size={18} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-semibold text-ink">Карточки и статистика</span>
+            <span className="block text-sm text-ink-faint">
+              Колода, повторение и прогресс — на вкладке «Карточки»
+            </span>
+          </span>
+          <Icon
+            name="arrow-right"
+            size={16}
+            className="shrink-0 text-ink-faint transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-accent"
+          />
+        </Link>
+      </section>
 
       <button type="button" onClick={logout} className="btn-ghost mt-8 text-sm">
         <Icon name="arrow-left" size={15} />
@@ -84,103 +109,183 @@ function Account() {
   )
 }
 
-// --- Статистика изучения (считает бот: те же цифры в его /status) ---
+// --- Доклады: следующий и состоявшиеся ---
 
-function StudyStats({ userId }: { userId: number }) {
-  const { data, error, isLoading } = useSWR<UserStats>(`stats:${userId}`, fetchStats)
-  // Обложки — из меты книг, ключ общий с каталогом.
-  const books = useSWR<BookWithFolder[]>('books', fetchBooks)
-  const coverOf = (folder: string) => books.data?.find((b) => b.folder === folder)?.meta.cover
+/**
+ * «Я» как спикер каталога. Кто это, знает бот (`/api/membership`): человек из
+ * `speakers.json` либо участник с одобренной заявкой — у второго записи в
+ * каталоге нет, и его заявки находятся по имени, под которым он их подал.
+ */
+function selfSpeaker(membership: Membership, speakers: IndexSpeaker[]): IndexSpeaker | null {
+  const catalog = speakers.find((s) => s.id === membership.speaker?.id)
+  if (catalog) {
+    return membership.full_name && membership.full_name !== catalog.name
+      ? { ...catalog, aliases: [...catalog.aliases, membership.full_name] }
+      : catalog
+  }
+  const name = membership.speaker?.name ?? membership.full_name
+  if (!name) return null
+  return { id: membership.speaker?.id ?? '', name, aliases: [], avatar: '' }
+}
 
-  if (isLoading) {
+function MyTalks() {
+  // Ключи общие со страницами «Стать спикером» и профилем спикера.
+  const membership = useSWR<Membership>('membership', fetchMembership)
+  const member = Boolean(membership.data?.registered)
+  const speakers = useSWR<IndexSpeaker[]>(member ? 'speakers' : null, fetchSpeakers)
+  const events = useSWR<ClubEvent[]>(member ? 'events' : null, fetchEvents)
+  const claims = useSWR<TopicClaim[]>(member ? 'topic-claims' : null, fetchClaims)
+  const chapters = useSWR<ChapterTopics[]>(member ? 'chapters-all' : null, fetchAllChapters)
+
+  if (membership.isLoading) {
     return (
-      <section className="mt-8">
-        <Loading label="Считаем статистику…" />
+      <section className="mt-10">
+        <Loading label="Загружаем доклады…" />
       </section>
     )
   }
-  if (error || !data) {
+  if (membership.error || !membership.data) {
     return (
-      <section className="mt-8">
-        <ErrorState message={error ? (error as Error).message : 'Статистика недоступна'} />
-      </section>
-    )
-  }
-  if (data.books.length === 0 && data.reviews.total === 0) {
-    return (
-      <section className="reveal mt-8" style={{ '--reveal-delay': '80ms' } as React.CSSProperties}>
-        <EmptyState
-          title="Статистика появится после первых повторений"
-          hint="Добавь книгу в колоду и повтори её карточки — здесь будет видно, как она выучена."
-          action={
-            <Link to="/books" className="btn-ghost">
-              <Icon name="book" size={16} />
-              К книгам
-            </Link>
-          }
+      <section className="mt-10">
+        <ErrorState
+          message={membership.error ? (membership.error as Error).message : 'Профиль недоступен'}
         />
       </section>
     )
   }
+  // Темы берут участники клуба — остальным показываем, как им стать.
+  if (!member) return <JoinCard status={membership.data.status} />
+
+  if (speakers.isLoading || events.isLoading || claims.isLoading || chapters.isLoading) {
+    return (
+      <section className="mt-10">
+        <Loading label="Загружаем доклады…" />
+      </section>
+    )
+  }
+  const failed = speakers.error ?? events.error
+  if (failed) {
+    return (
+      <section className="mt-10">
+        <ErrorState message={(failed as Error).message} />
+      </section>
+    )
+  }
+
+  const me = selfSpeaker(membership.data, speakers.data ?? [])
+  const upcoming = me ? collectUpcomingTalks(events.data ?? [], me, claims.data ?? []) : []
+  const past = me
+    ? collectSpeakerTalks(events.data ?? [], me, claims.data ?? [], chapters.data ?? [])
+    : []
+  const publicId = speakers.data?.find((s) => s.id === me?.id)?.id
 
   return (
     <>
-      <section className="reveal mt-8" style={{ '--reveal-delay': '80ms' } as React.CSSProperties}>
-        <h2 className="font-display text-lg font-semibold text-ink">Статистика</h2>
-        <div className="card mt-3">
-          <StatsSummary stats={data} />
-        </div>
-      </section>
-
-      <section className="reveal mt-8" style={{ '--reveal-delay': '140ms' } as React.CSSProperties}>
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 className="font-display text-lg font-semibold text-ink">Активность</h2>
-          <span className="text-xs text-ink-faint">12 недель</span>
-        </div>
-        <div className="card mt-3">
-          <ActivityHeatmap activity={data.activity} />
-        </div>
-      </section>
-
-      {data.books.length > 0 ? (
-        <section className="reveal mt-8" style={{ '--reveal-delay': '200ms' } as React.CSSProperties}>
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <h2 className="font-display text-lg font-semibold text-ink">Книги</h2>
-            <ul aria-hidden="true" className="flex gap-3 text-xs text-ink-faint">
-              {MASTERY_PARTS.map(({ label, className }) => (
-                <li key={label} className="flex items-center gap-1.5">
-                  <span className={`h-2 w-2 rounded-full ${className}`} />
-                  {label}
-                </li>
-              ))}
-            </ul>
+      <section className="reveal mt-10" style={{ '--reveal-delay': '80ms' } as React.CSSProperties}>
+        <h2 className="font-display text-lg font-semibold text-ink">
+          {upcoming.length > 1 ? 'Ближайшие доклады' : 'Следующий доклад'}
+        </h2>
+        {claims.error ? (
+          <p className="mt-2 text-xs text-ink-faint">
+            Заявки на доклады временно недоступны — попробуй обновить страницу позже.
+          </p>
+        ) : upcoming.length === 0 ? (
+          <div className="card mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+            <p className="flex-1 text-sm text-ink-soft">
+              Темы на ближайшие эфиры у тебя пока нет. Свободные темы — в плане докладов.
+            </p>
+            <Link to="/join" className="btn-ghost shrink-0">
+              <Icon name="mic" size={16} />
+              Выбрать тему
+            </Link>
           </div>
+        ) : (
           <div className="mt-3 space-y-3">
-            {data.books.map((book) => (
-              <BookMastery key={book.folder} book={book} cover={coverOf(book.folder)} />
+            {upcoming.map((talk) => (
+              <UpcomingCard key={talk.eventId + talk.talkTitle} talk={talk} />
             ))}
           </div>
-        </section>
-      ) : null}
+        )}
+      </section>
+
+      <section className="reveal mt-10" style={{ '--reveal-delay': '140ms' } as React.CSSProperties}>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="font-display text-lg font-semibold text-ink">Ваши доклады</h2>
+          {past.length > 0 ? (
+            <span className="text-xs text-ink-faint">
+              {past.length} {plural(past.length, 'доклад', 'доклада', 'докладов')}
+            </span>
+          ) : null}
+        </div>
+        {past.length === 0 ? (
+          <p className="mt-2 text-sm text-ink-faint">
+            Здесь появятся твои выступления — со слайдами и записями.
+          </p>
+        ) : (
+          <div className="mt-1">
+            <TalkList talks={past} />
+          </div>
+        )}
+        {publicId ? (
+          <p className="mt-3 text-sm">
+            <Link to={`/speaker/${publicId}`} className="link-inline">
+              Как профиль видят другие
+            </Link>
+          </p>
+        ) : null}
+      </section>
     </>
   )
 }
 
-// --- Напоминания: живут в боте ---
-
-function RemindersCard() {
+function UpcomingCard({ talk }: { talk: UpcomingTalk }) {
+  const book = bookTitleById(talk.bookId)
   return (
-    <section className="reveal mt-8" style={{ '--reveal-delay': '260ms' } as React.CSSProperties}>
-      <h2 className="font-display text-lg font-semibold text-ink">Напоминания</h2>
+    <div className="card">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+        <span className="flex items-center gap-1.5 font-semibold text-accent-strong">
+          <Icon name="calendar" size={14} />
+          {formatEventDate(talk.date)}, {formatWeekday(talk.date)} · {talk.time} МСК
+        </span>
+        {talk.pending ? (
+          <span className="rounded-full bg-warn-soft px-2.5 py-0.5 font-semibold text-warn">
+            заявка у админа
+          </span>
+        ) : (
+          <span className="rounded-full bg-success-soft px-2.5 py-0.5 font-semibold text-success">
+            подтверждён
+          </span>
+        )}
+      </div>
+      <h3 className="font-display mt-2 text-lg font-semibold leading-snug text-ink">
+        {talk.talkTitle}
+      </h3>
+      <p className="mt-1 text-sm text-ink-faint">
+        {talk.stream ? `Книжный клуб ${talk.stream}` : talk.eventTitle}
+        {book ? ` · ${book}` : ''}
+      </p>
+    </div>
+  )
+}
+
+// Не участник клуба: что с заявкой и куда идти дальше.
+function JoinCard({ status }: { status: Membership['status'] }) {
+  const pending = status === 'pending'
+  return (
+    <section className="reveal mt-10" style={{ '--reveal-delay': '80ms' } as React.CSSProperties}>
+      <h2 className="font-display text-lg font-semibold text-ink">Доклады</h2>
       <div className="card mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
         <p className="flex-1 text-sm text-ink-soft">
-          Бот клуба пишет в 10:00 МСК, когда в колоде есть карточки к повторению.
-          Выключить — /stop, включить снова — /start.
+          {pending
+            ? 'Заявка на участие у админа. Как только её одобрят, бот напишет — и здесь появятся твои доклады.'
+            : status === 'declined'
+              ? 'Прошлую заявку на участие не одобрили — её можно отправить заново.'
+              : 'Темы докладов берут участники клуба. Отправь заявку — и сможешь выбрать тему.'}
         </p>
-        <a href={BOT_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost shrink-0">
-          <BrandIcon brand="telegram" size={16} />
-          Открыть бота
-        </a>
+        <Link to="/join" className="btn-ghost shrink-0">
+          <Icon name="mic" size={16} />
+          {pending ? 'Моя заявка' : 'Стать спикером'}
+        </Link>
       </div>
     </section>
   )
