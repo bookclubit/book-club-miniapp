@@ -1,5 +1,5 @@
-// Аккаунт платформы: вход через Telegram и клиент к API бота (единый прогресс,
-// колода, статистика). Сессия — подписанный токен бота в localStorage.
+// Аккаунт платформы: вход через Telegram и клиент к API бота (профиль,
+// участие в клубе, брони тем). Сессия — подписанный токен бота в localStorage.
 //
 // Вход: внутри Telegram — автоматически по initData Mini App; в браузере —
 // через бота (кнопка ведёт в t.me/<бот>?start=login_<code>, человек жмёт
@@ -8,7 +8,6 @@
 // оно не доходит.
 
 import { BOT_API, BOT_URL } from './api'
-import type { Deck, ReviewGrade, StudyProgress, UserStats } from '../types'
 
 export interface PlatformUser {
   id: number
@@ -16,16 +15,6 @@ export interface PlatformUser {
   first_name: string | null
   last_name: string | null
   photo_url: string | null
-}
-
-// Прогресс карточки с сервера. cardId — композитный «<book>:<cardId>».
-export interface ServerCardProgress {
-  cardId: string
-  repetition: number
-  interval: number
-  easiness: number
-  dueDate: number
-  lastReviewed: number
 }
 
 // --- Telegram WebApp (Mini App внутри Telegram) ---
@@ -165,54 +154,6 @@ export async function fetchMe(): Promise<PlatformUser> {
   return data.user
 }
 
-export async function fetchServerProgress(): Promise<ServerCardProgress[]> {
-  const data = await authFetch<{ progress: ServerCardProgress[] }>('/api/progress')
-  return data.progress
-}
-
-/**
- * Оценка карточки на сервере: POST /api/review { card_id, book_id, grade }.
- * Сервер сам считает SM-2 и возвращает новый прогресс карточки.
- */
-export async function sendCardReview(
-  bookId: string,
-  cardId: string,
-  grade: ReviewGrade,
-): Promise<ServerCardProgress> {
-  const data = await authFetch<{ progress: ServerCardProgress }>('/api/review', {
-    method: 'POST',
-    body: JSON.stringify({ card_id: cardId, book_id: bookId, grade }),
-  })
-  return data.progress
-}
-
-/** Серверная запись прогресса → локальный формат карточки (Study). */
-export function serverToCardProgress(p: ServerCardProgress) {
-  return {
-    repetitions: p.repetition,
-    interval: p.interval,
-    easiness: p.easiness,
-    dueDate: new Date(p.dueDate).toISOString(),
-  }
-}
-
-/**
- * Серверный прогресс (ключи «<book>:<cardId>») → локальный прогресс книги
- * (ключи — id карточек без префикса), как его хранит и читает Study.
- */
-export function serverToStudyProgress(
-  list: ServerCardProgress[],
-  bookId: string,
-): StudyProgress {
-  const prefix = `${bookId}:`
-  const progress: StudyProgress = {}
-  for (const p of list) {
-    if (!p.cardId.startsWith(prefix)) continue
-    progress[p.cardId.slice(prefix.length)] = serverToCardProgress(p)
-  }
-  return progress
-}
-
 // --- Участие в клубе: заявка и брони тем ---
 
 // Темы докладов берут участники клуба. Пока registered = false, слоты закрыты:
@@ -247,55 +188,3 @@ export async function claimTopic(topicId: string): Promise<{ topic_title: string
     body: JSON.stringify({ topic_id: topicId }),
   })
 }
-
-// --- Колода, импорт прогресса, статистика ---
-
-export async function fetchServerDeck(): Promise<Deck> {
-  const data = await authFetch<{ deck: Deck }>('/api/deck')
-  return data.deck
-}
-
-/** Книга в колоду или из неё; сервер отвечает колодой после изменения. */
-export async function changeServerDeck(action: 'add' | 'remove', book: string): Promise<Deck> {
-  const data = await authFetch<{ deck: Deck }>('/api/deck', {
-    method: 'POST',
-    body: JSON.stringify({ action, book }),
-  })
-  return data.deck
-}
-
-/** Колода с устройства — в аккаунт (только добавляет). */
-export async function mergeServerDeck(deck: Deck): Promise<Deck> {
-  const data = await authFetch<{ deck: Deck }>('/api/deck', {
-    method: 'POST',
-    body: JSON.stringify({ action: 'merge', ...deck }),
-  })
-  return data.deck
-}
-
-// Прогресс карточки с устройства в формате сервера.
-export interface ImportedProgress {
-  book_id: string
-  card_id: string
-  repetition: number
-  interval: number
-  easiness: number
-  due_date: number
-  last_reviewed: number
-}
-
-/** Прогресс с устройства — в аккаунт. Сервер не трогает карточки, которые уже знает. */
-export async function importProgress(items: ImportedProgress[]): Promise<number> {
-  const data = await authFetch<{ imported: number }>('/api/progress/import', {
-    method: 'POST',
-    body: JSON.stringify({ items }),
-  })
-  return data.imported
-}
-
-/** Статистика изучения — та же, что /status в боте. */
-export async function fetchStats(): Promise<UserStats> {
-  const data = await authFetch<{ stats: UserStats }>('/api/stats')
-  return data.stats
-}
-

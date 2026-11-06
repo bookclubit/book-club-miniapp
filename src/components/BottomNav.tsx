@@ -6,7 +6,6 @@ const TABS: Array<{ to: string; label: string; icon: IconName; end?: boolean }> 
   { to: '/books', label: 'Книги', icon: 'book' },
   { to: '/meetings', label: 'Встречи', icon: 'calendar' },
   { to: '/speakers', label: 'Спикеры', icon: 'users' },
-  { to: '/study', label: 'Карточки', icon: 'cards' },
 ]
 
 // Нижняя таб-панель — только на мобильных (десктоп навигируется меню в шапке).

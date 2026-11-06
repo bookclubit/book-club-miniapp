@@ -7,7 +7,6 @@ export type IconName =
   | 'arrow-down'
   | 'calendar'
   | 'play'
-  | 'cards'
   | 'book'
   | 'external'
   | 'refresh'
@@ -36,12 +35,6 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   play: <path d="M7 5.5v13l11-6.5z" />,
-  cards: (
-    <>
-      <rect x="3" y="6.5" width="13" height="15" rx="2" />
-      <path d="M8 3.5h11a2 2 0 0 1 2 2v12" />
-    </>
-  ),
   book: (
     <>
       <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5H6.5A2.5 2.5 0 0 0 4 21z" />

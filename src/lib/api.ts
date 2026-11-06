@@ -7,7 +7,6 @@ import type {
   ClubEvent,
   ClubSettings,
   ContentIndex,
-  Flashcard,
   IndexBook,
   IndexChapter,
   IndexSpeaker,
@@ -301,10 +300,6 @@ export function metaUrl(bookId: string): string {
   return `${RAW_BASE}/books/${bookId}/meta.json`
 }
 
-export function flashcardsUrl(bookId: string): string {
-  return `${RAW_BASE}/books/${bookId}/flashcards.json`
-}
-
 export function chapterUrl(bookId: string, chapterSlug: string): string {
   return `${RAW_BASE}/books/${bookId}/chapters/${chapterSlug}/chapter.json`
 }
@@ -356,30 +351,6 @@ export async function fetchChapters(bookId: string): Promise<ChapterWithSlug[]> 
   return chapters.sort((a, b) => a.order - b.order)
 }
 
-// Загружает карточки книги. У книги может ещё не быть flashcards.json — тогда пусто.
-export async function fetchFlashcards(bookId: string): Promise<Flashcard[]> {
-  const res = await fetch(flashcardsUrl(bookId))
-  if (res.status === 404) return []
-  if (!res.ok) {
-    throw new Error(`Не удалось загрузить карточки (${res.status})`)
-  }
-  return (await res.json()) as Flashcard[]
-}
-
-// Карточки нескольких книг одной пачкой: хуки SWR нельзя звать в цикле.
-// Ключ SWR: `study-cards:${folders.join(',')}`.
-export async function fetchFlashcardsOf(folders: string[]): Promise<Record<string, Flashcard[]>> {
-  const entries = await Promise.all(
-    folders.map(async (folder) => [folder, await fetchFlashcards(folder)] as const),
-  )
-  return Object.fromEntries(entries)
-}
-
-// Загружает события клуба из events/ (список — в реестре). Ключ SWR: 'events'.
-// Файла из реестра может уже не быть: при переносе даты CMS переименовывает
-// файл встречи, а реестр пересобирается после мержа и ещё несколько минут
-// отдаётся из кэша raw.githubusercontent.com. Такую встречу (404) пропускаем —
-// иначе одна ссылка роняла бы и встречи, и главную, и страницы книг.
 export async function fetchEvents(): Promise<ClubEvent[]> {
   const index = await fetchIndex()
   const events = await Promise.all(

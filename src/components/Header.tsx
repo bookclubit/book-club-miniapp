@@ -8,7 +8,6 @@ const NAV = [
   { to: '/books', label: 'Книги', end: false },
   { to: '/meetings', label: 'Встречи', end: false },
   { to: '/speakers', label: 'Спикеры', end: false },
-  { to: '/study', label: 'Карточки', end: false },
 ]
 
 // В браузере это единственная навигация (нижняя таб-панель — только на

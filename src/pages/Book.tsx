@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import useSWR from 'swr'
-import AddBookToDeck from '../components/AddBookToDeck'
 import ChapterTopics from '../components/ChapterTopics'
 import EmptyState from '../components/EmptyState'
 import ErrorState from '../components/ErrorState'
@@ -14,7 +13,6 @@ import {
   fetchChapters,
   fetchClaims,
   fetchEvents,
-  fetchFlashcards,
   fetchIndex,
   fetchPublishedSlides,
   mediaUrl,
@@ -28,9 +26,9 @@ import {
   type ChapterBroadcast,
   type TopicMaterials,
 } from '../lib/materials'
-import type { ChapterWithSlug, ClubEvent, ContentIndex, Flashcard } from '../types'
+import type { ChapterWithSlug, ClubEvent, ContentIndex } from '../types'
 
-// Страница книги: обложка с кнопкой колоды, авторы, описание и все главы
+// Страница книги: обложка, авторы, описание и все главы
 // с темами на этой же странице (отдельных страниц у глав нет).
 function Book() {
   const { bookId } = useParams<{ bookId: string }>()
@@ -46,10 +44,6 @@ function Book() {
   const chapters = useSWR<ChapterWithSlug[]>(
     bookId ? `chapters:${bookId}` : null,
     () => fetchChapters(bookId as string),
-  )
-  const cards = useSWR<Flashcard[]>(
-    bookId ? `flashcards:${bookId}` : null,
-    () => fetchFlashcards(bookId as string),
   )
   // Реестр нужен темам: по нему находятся аватарки спикеров, их страницы
   // и то, что «Антон» из главы и «Антон Помазков» из заявки — один человек.
@@ -148,7 +142,6 @@ function Book() {
   const meta = books.data?.find((b) => b.folder === bookId)?.meta
   const isLoading = books.isLoading || chapters.isLoading
   const error = books.error || chapters.error
-  const cardCount = cards.data?.length ?? 0
 
   const shown = chapters.data ?? []
   // Выбранная глава могла пропасть (перешли на другую книгу) — тогда снова все.
@@ -174,9 +167,8 @@ function Book() {
         <>
           {meta ? (
             <header className="reveal mt-8 flex flex-col gap-8 sm:flex-row sm:gap-10">
-              {/* Обложка и под ней — кнопка колоды. На узком экране колонка
-                  во всю ширину: обложка по центру и крупнее, кнопка — во всю
-                  ширину экрана (у края она попадает под большой палец). */}
+              {/* На узком экране колонка во всю ширину: обложка по центру
+                  и крупнее. */}
               <div className="w-full shrink-0 self-start sm:w-44">
                 {meta.cover ? (
                   <img
@@ -187,7 +179,6 @@ function Book() {
                     className="mx-auto h-75 w-52 rounded-lg object-cover shadow-lift sm:mx-0 sm:h-62.5 sm:w-44"
                   />
                 ) : null}
-                {cardCount > 0 ? <AddBookToDeck bookId={bookId} count={cardCount} /> : null}
               </div>
 
               <div className="min-w-0">

@@ -288,44 +288,6 @@ p {
   animation-delay: var(--reveal-delay, 0s);
 }
 
-/* --- 3D-переворот флеш-карточки --- */
-
-.flip-scene {
-  perspective: 1400px;
-}
-
-.flip-inner {
-  display: grid;
-  transform-style: preserve-3d;
-  transition: transform 0.55s cubic-bezier(0.3, 0.8, 0.3, 1);
-}
-
-.flip-inner.flipped {
-  transform: rotateY(180deg);
-}
-
-.flip-face {
-  grid-area: 1 / 1;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-.flip-face-back {
-  transform: rotateY(180deg);
-}
-
-/* Раскрывающийся блок (объяснение в карточке): высота анимируется через
-   grid-template-rows, внутри — обёртка с overflow: hidden. */
-.expand {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.expand.open {
-  grid-template-rows: 1fr;
-}
-
 /* --- Прогресс-бар --- */
 
 .progress-fill {

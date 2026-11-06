@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { mutate } from 'swr'
 import {
   authTelegram,
   clearToken,
@@ -9,7 +8,6 @@ import {
   telegramWebApp,
   type PlatformUser,
 } from './account'
-import { syncGuestData } from './sync'
 
 interface AuthState {
   user: PlatformUser | null
@@ -19,9 +17,6 @@ interface AuthState {
   completeLogin: (user: PlatformUser) => void
   logout: () => void
 }
-
-// Кэши SWR, которые после переноса гостевых данных в аккаунт пора перечитать.
-const ACCOUNT_KEYS = /^(deck|server-progress|stats|study-books)/
 
 const AuthContext = createContext<AuthState | null>(null)
 
@@ -63,19 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       cancelled = true
     }
   }, [])
-
-  // Вошёл — переносим в аккаунт то, что человек успел на этом устройстве как гость.
-  const userId = user?.id
-  useEffect(() => {
-    if (userId === undefined) return
-    syncGuestData(userId)
-      .then((synced) => {
-        if (synced) void mutate((key) => typeof key === 'string' && ACCOUNT_KEYS.test(key))
-      })
-      .catch(() => {
-        // Сервер недоступен — перенесём при следующем запуске.
-      })
-  }, [userId])
 
   const completeLogin = useCallback((u: PlatformUser) => setUser(u), [])
 

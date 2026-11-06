@@ -16,8 +16,6 @@ const Home = lazy(() => import('./pages/Home'))
 const Meetings = lazy(() => import('./pages/Meetings'))
 const Speaker = lazy(() => import('./pages/Speaker'))
 const Speakers = lazy(() => import('./pages/Speakers'))
-const Study = lazy(() => import('./pages/Study'))
-const StudyIndex = lazy(() => import('./pages/StudyIndex'))
 
 /**
  * Старая ссылка на главу (`/book/:bookId/chapter/:chapterId`) — своей страницы
@@ -66,10 +64,8 @@ function AnimatedRoutes() {
             <Route path="/book/:bookId" element={<Book />} />
             <Route path="/author/:authorId" element={<Author />} />
             <Route path="/book/:bookId/chapter/:chapterId" element={<ChapterRedirect />} />
-            <Route path="/study" element={<StudyIndex />} />
-            {/* Общая сессия по всем книгам колоды — Study без книги в маршруте. */}
-            <Route path="/study/all" element={<Study />} />
-            <Route path="/study/:bookId" element={<Study />} />
+            {/* Карточек больше нет: старые ссылки из бота и закладок — на главную. */}
+            <Route path="/study/*" element={<Navigate to="/" replace />} />
             <Route path="*" element={<Home />} />
           </Routes>
         </Suspense>

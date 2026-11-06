@@ -35,7 +35,6 @@ import { useAuth } from '../lib/useAuth'
 import type { ClubEvent, IndexSpeaker } from '../types'
 
 // Профиль: кто вошёл и его доклады — следующий и уже прочитанные.
-// Колода, повторение и прогресс — на вкладке «Карточки».
 function Account() {
   const { user, loading, inTelegram, completeLogin, logout } = useAuth()
 
@@ -55,8 +54,8 @@ function Account() {
         </span>
         <h1 className="font-display mt-5 text-2xl font-semibold text-ink">Аккаунт клуба</h1>
         <p className="mx-auto mt-2 max-w-sm text-ink-soft">
-          Войди через Telegram — колода, прогресс и статистика станут общими для сайта
-          и приложения в Telegram, а бот будет напоминать о повторении.
+          Войди через Telegram — чтобы подать заявку на участие, взять тему доклада
+          и видеть свои выступления.
         </p>
         <div className="mt-6">
           {inTelegram ? (
@@ -94,25 +93,6 @@ function Account() {
       </header>
 
       <MyTalks />
-
-      <section className="reveal mt-10" style={{ '--reveal-delay': '200ms' } as React.CSSProperties}>
-        <Link to="/study" className="card card-hover group flex items-center gap-4">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent-strong">
-            <Icon name="cards" size={18} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-semibold text-ink">Карточки и прогресс</span>
-            <span className="block text-sm text-ink-faint">
-              Колода, повторение и активность — на вкладке «Карточки»
-            </span>
-          </span>
-          <Icon
-            name="arrow-right"
-            size={16}
-            className="shrink-0 text-ink-faint transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-accent"
-          />
-        </Link>
-      </section>
 
       <button type="button" onClick={logout} className="btn-ghost mt-8 text-sm">
         <Icon name="arrow-left" size={15} />
